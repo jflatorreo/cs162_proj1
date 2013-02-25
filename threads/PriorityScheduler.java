@@ -165,6 +165,7 @@ public class PriorityScheduler extends Scheduler {
 			if (this.pqWant == null)
 				this.effectivePriority = priority;
 			
+			// when my priority is greater than my effectivepriority
 			// when i am waiting for a resource and transferpriority is true,
 			// i need to donate again
 			if (priority > this.effectivePriority) {
@@ -173,18 +174,15 @@ public class PriorityScheduler extends Scheduler {
 					this.pqWant.holder.setEffectivePriority(this);
 			}
 		
-			// when i am lowering my priority, then i need to recalculate my priority
+			// when i am lowering my priority, then i need to recalculate my effectivepriority
 			// when, of course, pqWant.transferpriority is true
 			if (priority < this.effectivePriority) {
+				this.effectivePriority = priority;
+				this.pqWant.waitQueue.remove(this);
+				this.pqWant.waitQueue.add(this);
 				if (pqWant.transferPriority)
 				{
 					this.updateEffectivePriority();
-				}
-				else
-				{
-					this.effectivePriority = priority;
-					this.pqWant.waitQueue.remove(this);
-					this.pqWant.waitQueue.add(this);
 				}
 			}
 		}
@@ -199,14 +197,14 @@ public class PriorityScheduler extends Scheduler {
 		
 		public void updateEffectivePriority() {
 			int maxPriority = -1;
-			for (PriorityQueue pq: pqHave) {
+			for (PriorityQueue pq: this.pqHave) {
 				maxPriority = java.lang.Math.max(maxPriority, pq.holder.getEffectivePriority());
 			}
 			if (maxPriority != this.effectivePriority) {
 				this.effectivePriority = maxPriority;
 				//add and remove from pqwant
-				pqWant.waitQueue.remove(this);
-				pqWant.waitQueue.add(this);
+				this.pqWant.waitQueue.remove(this);
+				this.pqWant.waitQueue.add(this);
 			}
 		}
 		
