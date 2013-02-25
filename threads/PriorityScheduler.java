@@ -144,8 +144,8 @@ public class PriorityScheduler extends Scheduler {
 		//Constructor
 		public ThreadState(KThread thread) {
 			this.thread = thread;
-			setPriority(priorityDefault);
 			pqHave = new ArrayList<PriorityQueue>();
+			setPriority(priorityDefault);
 			pqWant = null;
 			time = -1;
 		}
@@ -161,7 +161,8 @@ public class PriorityScheduler extends Scheduler {
 		
 		public void setPriority(int priority) {
 			this.priority = priority;
-			this.effectivePriority = priority;
+			if (pqHave.isEmpty())
+				this.effectivePriority = priority;
 		}
 		
 		public void setEffectivePriority(ThreadState donator) {
