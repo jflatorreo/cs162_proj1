@@ -93,11 +93,13 @@ public class PriorityScheduler extends Scheduler {
 		}
 		
 		//Helper Methods
+		/*
 		protected ThreadState pickNextThread() {
+			assert (false);
 			if (this.waitQueue.isEmpty())
 				return null;
 			return this.waitQueue.last(); //retrieve top element.
-		}
+		}*/
 		
 		//Action Methods
 		public void waitForAccess(KThread thread) {
@@ -113,10 +115,14 @@ public class PriorityScheduler extends Scheduler {
 		public KThread nextThread() {
 			Lib.assertTrue(Machine.interrupt().disabled());
 			ThreadState newHolder = this.waitQueue.pollLast(); //return null if waitQueue is empty
-			if (newHolder != null)
+			if (newHolder != null) {
 				this.acquire(newHolder.thread);
-			
-			return newHolder.thread;
+				return newHolder.thread;
+			}
+			else {
+				this.holder = null;
+			    return null;
+			}
 		}
 		
 		public void print() {
@@ -177,24 +183,12 @@ public class PriorityScheduler extends Scheduler {
 		//Action Methods
 		public void waitForAccess(PriorityQueue pq) {
 			//Add this ThreadState to pq.waitQueue
+			//assert (pq.holder != null);
 			if (this.pqHave.contains(pq) == true)
 				this.pqHave.remove(pq);
 			this.pqWant = pq;
 			pq.waitQueue.add(this);
-			
-			//Propagate priority donation if needed
-			/*
-			if (pq.holder.effectivePriority < this.effectivePriority) {
-				curr = pq.holder;
-				while (curr != null) {
-					curr.effectivePriority = this.effectivePriority;
-					if (curr.pqWant != null)
-						curr = curr.pqWant.holder;
-					else
-						curr = null;
-				}
-			}
-			*/
+
 			pq.holder.setEffectivePriority(this);
 		}
 		
