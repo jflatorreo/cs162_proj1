@@ -144,10 +144,10 @@ public class PriorityScheduler extends Scheduler {
 		//Constructor
 		public ThreadState(KThread thread) {
 			this.thread = thread;
-			pqHave = new ArrayList<PriorityQueue>();
-			setPriority(priorityDefault);
-			pqWant = null;
-			time = -1;
+			this.pqHave = new ArrayList<PriorityQueue>();
+			this.setPriority(priorityDefault);
+			this.pqWant = null;
+			this.time = -1;
 		}
 
 		//Helper Methods
@@ -165,11 +165,13 @@ public class PriorityScheduler extends Scheduler {
 			this.effectivePriority = priority;
 			
 			if (pqWant != null) {
-				this.pqWant.waitQueue.remove(this);
-				this.pqWant.waitQueue.add(this);
 				if (this.pqWant.transferPriority == true) {
 					this.updateEffectivePriority();
 					this.pqWant.holder.setEffectivePriority(this);
+				}
+				else {
+					this.pqWant.waitQueue.remove(this);
+					this.pqWant.waitQueue.add(this);
 				}
 			}
 			
@@ -199,6 +201,7 @@ public class PriorityScheduler extends Scheduler {
 			*/
 		}
 		
+		//Where is re-insertion in queue here? Is it error?
 		public void setEffectivePriority(ThreadState donator) {
 		    this.effectivePriority = java.lang.Math.max(this.priority, java.lang.Math.max(this.effectivePriority, java.lang.Math.max(donator.priority, donator.effectivePriority)));
 			//Recursion here
@@ -208,6 +211,7 @@ public class PriorityScheduler extends Scheduler {
 		}
 		
 		public void updateEffectivePriority() {
+			
 			int maxPriority = -1;
 			for (PriorityQueue pq: this.pqHave) {
 				maxPriority = java.lang.Math.max(maxPriority, pq.holder.getEffectivePriority());
