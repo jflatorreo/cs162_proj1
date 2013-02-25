@@ -257,5 +257,3 @@ public class KThread {
 		}
 	}
 }
-		
-		
