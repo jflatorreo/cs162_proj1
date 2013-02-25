@@ -177,7 +177,12 @@ public class PriorityScheduler extends Scheduler {
 			for (PriorityQueue pq: pqHave) {
 				maxPriority = java.lang.Math.max(maxPriority, pq.holder.getEffectivePriority());
 			}
-			this.effectivePriority = java.lang.Math.max(this.priority, maxPriority);
+			if (maxPriority > this.effectivePriority) {
+				this.effectivePriority = java.lang.Math.max(this.priority, maxPriority);
+				//add and remove from pqwant
+				pqWant.waitQueue.remove(this);
+				pqWant.waitQueue.add(this);
+			}
 		}
 		
 		//Action Methods
