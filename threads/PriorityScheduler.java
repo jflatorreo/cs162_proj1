@@ -165,17 +165,12 @@ public class PriorityScheduler extends Scheduler {
 			this.effectivePriority = priority;
 			
 			if (pqWant != null) {
-				this.effectivePriority = priority;
 				this.pqWant.waitQueue.remove(this);
 				this.pqWant.waitQueue.add(this);
 				if (this.pqWant.transferPriority) {
 					this.updateEffectivePriority();
 					this.pqWant.holder.setEffectivePriority(this);
 				}
-			} else {
-				this.effectivePriority = priority;
-				if (this.pqWant.transferPriority)
-					this.updateEffectivePriority();
 			}
 			
 			/*
