@@ -163,6 +163,15 @@ public class PriorityScheduler extends Scheduler {
 			this.priority = priority;
 			if (pqHave.isEmpty())
 				this.effectivePriority = priority;
+			
+			if (priority > this.effectivePriority) {
+				this.pqWant.holder.setEffectivePriority(this);
+				this.effectivePriority = priority;
+			}
+			
+			if (priority < this.effectivePriority) {
+				this.updateEffectivePriority();
+			}
 		}
 		
 		public void setEffectivePriority(ThreadState donator) {
@@ -178,8 +187,8 @@ public class PriorityScheduler extends Scheduler {
 			for (PriorityQueue pq: pqHave) {
 				maxPriority = java.lang.Math.max(maxPriority, pq.holder.getEffectivePriority());
 			}
-			if (maxPriority > this.effectivePriority) {
-				this.effectivePriority = java.lang.Math.max(this.priority, maxPriority);
+			if (maxPriority != this.effectivePriority) {
+				this.effectivePriority = maxPriority;
 				//add and remove from pqwant
 				pqWant.waitQueue.remove(this);
 				pqWant.waitQueue.add(this);
