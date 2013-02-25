@@ -147,7 +147,7 @@ public class PriorityScheduler extends Scheduler {
 			setPriority(priorityDefault);
 			pqHave = new ArrayList<PriorityQueue>();
 			pqWant = null;
-			time = 0; //FIXME
+			time = -1;
 		}
 
 		//Helper Methods
@@ -187,6 +187,7 @@ public class PriorityScheduler extends Scheduler {
 			if (this.pqHave.contains(pq) == true)
 				this.pqHave.remove(pq);
 			this.pqWant = pq;
+			this.time = Machine.timer().getTime();
 			pq.waitQueue.add(this);
 
 			if (pq.transferPriority == true)
