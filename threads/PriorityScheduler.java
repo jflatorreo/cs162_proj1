@@ -200,7 +200,7 @@ public class PriorityScheduler extends Scheduler {
 		public void acquire(PriorityQueue pq) {
 			//Adjust the state of prevHolder of pq
 			ThreadState prevHolder = pq.holder;
-			if (!prevHolder.pqHave.isEmpty())
+			if (prevHolder.pqHave != null)
 				prevHolder.pqHave.remove(pq);
 			
 			//Set this ThreadState to the holder of pq
