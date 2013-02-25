@@ -167,7 +167,7 @@ public class PriorityScheduler extends Scheduler {
 			if (pqWant != null) {
 				this.pqWant.waitQueue.remove(this);
 				this.pqWant.waitQueue.add(this);
-				if (this.pqWant.transferPriority) {
+				if (this.pqWant.transferPriority == true) {
 					this.updateEffectivePriority();
 					this.pqWant.holder.setEffectivePriority(this);
 				}
@@ -243,7 +243,7 @@ public class PriorityScheduler extends Scheduler {
 				prevHolder.pqHave.remove(pq);
 			
 			//Set this ThreadState to the holder of pq
-			if (this.pqWant == pq)
+			if (this.pqWant.equals(pq))
 				this.pqWant = null;
 			this.pqHave.add(pq);
 			pq.holder = this;
