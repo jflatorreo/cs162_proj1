@@ -189,7 +189,7 @@ public class PriorityScheduler extends Scheduler {
 			this.pqWant = pq;
 			pq.waitQueue.add(this);
 
-			if (pq.holder != null)
+			if (pq.transferPriority == true)
 				pq.holder.setEffectivePriority(this);
 		}
 		
@@ -218,7 +218,8 @@ public class PriorityScheduler extends Scheduler {
 			else
 				prevHolder.effectivePriority = prevHolder.priority;
 			*/
-			this.updateEffectivePriority();
+			if (pq.transferPriority == true)
+				this.updateEffectivePriority();
 		}	
     }
 }
