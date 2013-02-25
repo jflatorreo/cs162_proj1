@@ -189,7 +189,8 @@ public class PriorityScheduler extends Scheduler {
 			this.pqWant = pq;
 			pq.waitQueue.add(this);
 
-			pq.holder.setEffectivePriority(this);
+			if (pq.holder != null)
+				pq.holder.setEffectivePriority(this);
 		}
 		
 		public void acquire(PriorityQueue pq) {
