@@ -161,16 +161,31 @@ public class PriorityScheduler extends Scheduler {
 		
 		public void setPriority(int priority) {
 			this.priority = priority;
-			if (pqHave.isEmpty())
+
+			if (this.pqWant == null)
 				this.effectivePriority = priority;
 			
+			// when i am waiting for a resource and transferpriority is true,
+			// i need to donate again
 			if (priority > this.effectivePriority) {
-				this.pqWant.holder.setEffectivePriority(this);
 				this.effectivePriority = priority;
+				if (this.pqWant.transferPriority)
+					this.pqWant.holder.setEffectivePriority(this);
 			}
-			
+		
+			// when i am lowering my priority, then i need to recalculate my priority
+			// when, of course, pqWant.transferpriority is true
 			if (priority < this.effectivePriority) {
-				this.updateEffectivePriority();
+				if (pqWant.transferPriority)
+				{
+					this.updateEffectivePriority();
+				}
+				else
+				{
+					this.effectivePriority = priority;
+					this.pqWant.waitQueue.remove(this);
+					this.pqWant.waitQueue.add(this);
+				}
 			}
 		}
 		
