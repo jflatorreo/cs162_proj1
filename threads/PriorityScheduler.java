@@ -250,6 +250,7 @@ public class PriorityScheduler extends Scheduler {
 			if (this.pqWant != null && this.pqWant.equals(pq))
 				this.pqWant = null;
 			this.pqHave.add(pq);
+			pq.waitQueue.remove(this);
 			pq.holder = this;
 			
 			//Set this ThreadState's effectivePriority back to its former state
