@@ -13,8 +13,7 @@ public class PriorityScheduler extends Scheduler {
 	//Fields
     public static final int priorityDefault = 1;
     public static final int priorityMinimum = 0;
-    public static final int priorityMaximum = 7;  
-	public boolean transferPriority;
+    public static final int priorityMaximum = 7;
 	
 	//Constructor
 	public PriorityScheduler() {
