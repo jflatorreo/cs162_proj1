@@ -81,6 +81,7 @@ public class PriorityScheduler extends Scheduler {
 		//Constructor
 		PriorityQueue(boolean transferPriority) {
 			this.transferPriority = transferPriority;
+			this.holder = null;
 			
 			waitQueue = new TreeSet<ThreadState>(new Comparator<ThreadState>() {
 				public int compare(ThreadState ts1, ThreadState ts2) {
@@ -160,7 +161,7 @@ public class PriorityScheduler extends Scheduler {
 		public void setEffectivePriority(ThreadState donator) {
 		    this.effectivePriority = java.lang.Math.max(this.priority, java.lang.Math.max(this.effectivePriority, java.lang.Math.max(donator.priority, donator.effectivePriority)));
 			//Recursion here
-			if (this.pqWant != null) {
+			if (this.pqWant != null && pqWant.holder != this) {
 				this.pqWant.holder.setEffectivePriority(this);
 			}
 		}
