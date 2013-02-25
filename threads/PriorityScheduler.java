@@ -243,7 +243,7 @@ public class PriorityScheduler extends Scheduler {
 				prevHolder.pqHave.remove(pq);
 			
 			//Set this ThreadState to the holder of pq
-			if (this.pqWant.equals(pq))
+			if (this.pqWant != null && this.pqWant.equals(pq))
 				this.pqWant = null;
 			this.pqHave.add(pq);
 			pq.holder = this;
