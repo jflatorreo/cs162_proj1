@@ -22,10 +22,10 @@ public class TimeWaitingKThread implements Comparable{
 
 	public int compareTo(Object o){
 		TimeWaitingKThread other = (TimeWaitingKThread) o;
-		if(other.getWakeTime() < this.getWakeTime()){
+		if(other.getWakeTime() > this.getWakeTime()){
 			return -1;
 		}
-		else if(other.getWakeTime() > this.getWakeTime()){
+		else if(other.getWakeTime() < this.getWakeTime()){
 			return 1;
 		}
 		else{

@@ -33,7 +33,8 @@ public class Alarm {
     
     TimeWaitingKThread current =  waitingThreads.peek();
     boolean intStatus = Machine.interrupt().disable();
-    System.out.println(currentTime);
+    
+    System.out.println("interrupt " + currentTime);
     while((current!=null)&&(current.getWakeTime()<currentTime)){
         current = waitingThreads.poll();
         current.wake();
@@ -69,8 +70,47 @@ public class Alarm {
        Machine.interrupt().restore(intStatus);
 
     }
+
+    private static class AlarmTest implements Runnable {
+        //Fields
+        private int which;
+        
+        //Constructor
+        AlarmTest(int which) {
+            this.which = which;
+        }
+        
+        public void run() {
+            for (int i=0; i<5; i++) {
+                System.out.println("*** thread " + which + " looped " + i + " times");
+                
+                KThread.currentThread().yield();
+            }
+        }
+    }
+    private static class AlarmTestWait implements Runnable {
+        //Fields
+        private double which;
+        
+        //Constructor
+        AlarmTestWait(double which) {
+            this.which = which;
+        }
+        
+        public void run() {
+                System.out.println("*** thread " + which + " begins wait");
+                ThreadedKernel.alarm.waitUntil(((int) (which*500))+500);
+                System.out.println("*** thread " + which + " awakes");
+        }
+    }
     public static void selfTest(){
-        ThreadedKernel.alarm.waitUntil(600);
+        new KThread(new AlarmTest(3)).setName("forked thread").fork();
+        new KThread(new AlarmTest(2)).fork();
+        new KThread(new AlarmTestWait(0)).fork();
+        new KThread(new AlarmTestWait(0.4)).fork();
+        new KThread(new AlarmTestWait(0.1)).fork();
+        new AlarmTestWait(1).run();
+        //ThreadedKernel.alarm.waitUntil(600);
     }
     PriorityQueue <TimeWaitingKThread> waitingThreads;
 }
