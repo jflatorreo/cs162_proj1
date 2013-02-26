@@ -252,7 +252,7 @@ public class PriorityScheduler extends Scheduler {
 					//Readjust myself in the pq with new priority
 					maxPriority = max(this.priority, maxPriority);
 					pqWant.updateEntry(this, maxPriority);
-					this.priority = maxPriority;
+					//this.priority = maxPriority;
 					//Donate my priority to pq owner
 					if (pqWant.transferPriority == true)
 						pqWant.holder.setEffectivePriority(this);
