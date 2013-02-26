@@ -220,6 +220,9 @@ public class PriorityScheduler extends Scheduler {
      * effectivePriority of the holder.
      */
 		public void setEffectivePriority(ThreadState donator) {
+      if (this.pqWant != null && this.pqWant.transferPriority != true)
+        return;
+        
 		  this.effectivePriority = max(this.effectivePriority, donator.effectivePriority);
 			if (this.pqWant != null) {
         this.pqWant.waitQueue.remove(this);

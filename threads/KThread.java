@@ -162,11 +162,10 @@ public class KThread {
 			this.isJoined = true;
 			sleep();
 
-      /*
+      
 			//Donate effectivePrioroity
 			ThreadState currState = (ThreadState) currentThread.schedulingState;
 			((ThreadState) this.schedulingState).setEffectivePriority(currState);
-      */
 		}
 		Machine.interrupt().enable();
 	}
