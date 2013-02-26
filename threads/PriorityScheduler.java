@@ -223,7 +223,7 @@ public class PriorityScheduler extends Scheduler {
 			if (this.pqWant != null && this.pqWant.transferPriority != true)
 				return;
 			int newPriority = max(this.effectivePriority, donator.effectivePriority);
-			if (this.effectivePriority !=  newPriority)
+			if (this.effectivePriority !=  newPriority) {
 				if (pqWant != null) {
 					pqWant.updateEntry(this, newPriority);
 					this.pqWant.holder.setEffectivePriority(this);
