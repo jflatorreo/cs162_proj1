@@ -210,12 +210,13 @@ public class PriorityScheduler extends Scheduler {
      * effectivePriority of the holder.
      */
 		public void setEffectivePriority(ThreadState donator) {
-		  this.effectivePriority = max(this.priority, max(this.effectivePriority, max(donator.priority, donator.effectivePriority)));
+		  this.effectivePriority = max(this.effectivePriority, donator.effectivePriority);
 			if (this.pqWant != null && pqWant.holder != this) {
         //Why do we need "pqWant.holder != this"?
         //Is it even possible be a holder of a lock and wanting that lock at the same time?
         this.pqWant.waitQueue.remove(this);
         this.pqWant.waitQueue.add(this);
+        if (pqWant.transferPriority == true)
 		this.pqWant.holder.setEffectivePriority(this);
       }
 		}
@@ -227,17 +228,24 @@ public class PriorityScheduler extends Scheduler {
      * We use updateEffectivePriority() for acquire().
      * Suppose a holder of PriorityQueue is done with this resource.
      * Then we need to reset the holder's effectivePriority one step back.
+     * Note: This function should be called ONLY is pq has 
      */
 		public void updateEffectivePriority() {
+			//Calculate new effectivePriority checking possible donations from threads that are waiting for me
 			int maxPriority = priorityMinimum;
 			for (PriorityQueue pq: this.pqHave)
-				maxPriority = max(maxPriority, pq.holder.getEffectivePriority());
-
+				if (pq.transferPriority == true)
+					maxPriority = max(maxPriority, pq.holder.getEffectivePriority());
+			//If there is a change in priority, update and propagate to other owners
 			if (maxPriority > this.effectivePriority) {
 				this.effectivePriority = maxPriority;
-        if(this.pqWant != null) {
+				if(this.pqWant != null) {
+					//Readjust myself in the pq with new priority
 					this.pqWant.waitQueue.remove(this);
 					this.pqWant.waitQueue.add(this);
+					//Donate my priority to pq owner
+					if (pqWant.transferPriority == true)
+						pqWant.holder.setEffectivePriority(this);
 				}
 			}
 		}
@@ -253,12 +261,10 @@ public class PriorityScheduler extends Scheduler {
      * the lock. So we add this ThreadState to pq.
      */
 		public void waitForAccess(PriorityQueue pq) {
-			if (this.pqHave.contains(pq) == true)
-				this.pqHave.remove(pq);
 			this.pqWant = pq;
 			this.time = Machine.timer().getTime();
 			pq.waitQueue.add(this);
-
+			//Propagate this ThreadState's effectivePriority to holder of pq
 			if (pq.transferPriority == true)
 				pq.holder.setEffectivePriority(this);
 		}
@@ -271,21 +277,20 @@ public class PriorityScheduler extends Scheduler {
      * In other words, this ThreadState is set to the holder of pq.
      */
 		public void acquire(PriorityQueue pq) {
-			//Adjust the state of prevHolder of pq
+			//Adjust the state of previous pq holder
 			ThreadState prevHolder = pq.holder;
 			if (prevHolder != null)
 				prevHolder.pqHave.remove(pq);
-			
-			//Set this ThreadState to the holder of pq
+			this.pqHave.add(pq);
+			//Adjusting ThreadState wanted resources 
 			if (this.pqWant != null && this.pqWant.equals(pq))
 				this.pqWant = null;
-			this.pqHave.add(pq);
+			//Setting new pq holder
 			pq.waitQueue.remove(this);
-			pq.holder = this;
-			
+			pq.holder = this;	
 			//Set this ThreadState's effectivePriority back to its former state
 			if (pq.transferPriority == true)
-				this.updateEffectivePriority();
+				prevHolder.updateEffectivePriority();
 		}	
   }
 }
