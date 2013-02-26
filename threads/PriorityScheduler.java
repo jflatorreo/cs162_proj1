@@ -85,15 +85,17 @@ public class PriorityScheduler extends Scheduler {
 			
 			waitQueue = new TreeSet<ThreadState>(new Comparator<ThreadState>() {
 				public int compare(ThreadState ts1, ThreadState ts2) {
-          if (ts1.getEffectivePriority() < ts2.getEffectivePriority())
-            return -1;
-          else if (ts1.getEffectivePriority() == ts2.getEffectivePriority()) {
-            if (ts1.time < ts2.time) return 1;
-            else if (ts1.time == ts2.time) return 0;
-            else return -1;
-          }
-          else
-            return 1;
+					if (ts1.getEffectivePriority() < ts2.getEffectivePriority())
+						return -1;
+					else if (ts1.getEffectivePriority() == ts2.getEffectivePriority()) {
+						if (ts1.time < ts2.time) return 1;
+						else {
+							if (ts1.time == ts2.time) return 0;
+							else return -1;
+						}
+					}
+					else
+						return 1;
 				}
 			});
 		}
