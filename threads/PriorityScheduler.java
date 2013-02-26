@@ -1,53 +1,52 @@
 package nachos.threads;
 
 import nachos.machine.*;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.TreeSet;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.lang.Math;
+import java.lang.Math.*;
  
 public class PriorityScheduler extends Scheduler {
 	//Fields
-    public static final int priorityDefault = 1;
-    public static final int priorityMinimum = 0;
-    public static final int priorityMaximum = 7;
+  public static final int priorityDefault = 1;
+  public static final int priorityMinimum = 0;
+  public static final int priorityMaximum = 7;
 	
 	//Constructor
 	public PriorityScheduler() {
-    }
+  }
 
 	//Helper Methods
-    public int getPriority(KThread thread) {
-		Lib.assertTrue(Machine.interrupt().disabled());
+  public int getPriority(KThread thread) {
+    Lib.assertTrue(Machine.interrupt().disabled());
 		return getThreadState(thread).getPriority();
-    }
+  }
 
-    public int getEffectivePriority(KThread thread) {
+  public int getEffectivePriority(KThread thread) {
 		Lib.assertTrue(Machine.interrupt().disabled());
 		return getThreadState(thread).getEffectivePriority();
-    }
+  }
 
-    public void setPriority(KThread thread, int priority) {
+  public void setPriority(KThread thread, int priority) {
 		Lib.assertTrue(Machine.interrupt().disabled());
 		Lib.assertTrue(priority >= priorityMinimum && priority <= priorityMaximum);
 		getThreadState(thread).setPriority(priority);
-    }
+  }
 	
 	protected ThreadState getThreadState(KThread thread) {
 		if (thread.schedulingState == null)
 			thread.schedulingState = new ThreadState(thread);
 		return (ThreadState) thread.schedulingState;
-    }
+  }
 	
 	//Action Methods
-    public ThreadQueue newThreadQueue(boolean transferPriority) {
+  public ThreadQueue newThreadQueue(boolean transferPriority) {
 		return new PriorityQueue(transferPriority);
-    }
+  }
 	
-    public boolean increasePriority() {
+  public boolean increasePriority() {
 		boolean intStatus = Machine.interrupt().disable();
 		KThread thread = KThread.currentThread();
 		int priority = getPriority(thread);
@@ -57,9 +56,9 @@ public class PriorityScheduler extends Scheduler {
 		setPriority(thread, priority+1);
 		Machine.interrupt().restore(intStatus);
 		return true;
-    }
+  }
 
-    public boolean decreasePriority() {
+  public boolean decreasePriority() {
 		boolean intStatus = Machine.interrupt().disable();
 		KThread thread = KThread.currentThread();
 		int priority = getPriority(thread);
@@ -69,9 +68,9 @@ public class PriorityScheduler extends Scheduler {
 		setPriority(thread, priority-1);
 		Machine.interrupt().restore(intStatus);
 		return true;
-    }  
+  }  
 
-    protected class PriorityQueue extends ThreadQueue {
+  protected class PriorityQueue extends ThreadQueue {
 		//Fields
 		public ThreadState holder;
 		public TreeSet<ThreadState> waitQueue ; //max effectivePriority/time pops first.
@@ -91,16 +90,14 @@ public class PriorityScheduler extends Scheduler {
 			});
 		}
 		
-		//Helper Methods
-		/*
+    //Action Methods
 		protected ThreadState pickNextThread() {
 			assert (false);
 			if (this.waitQueue.isEmpty())
 				return null;
 			return this.waitQueue.last(); //retrieve top element.
-		}*/
+		}
 		
-		//Action Methods
 		public void waitForAccess(KThread thread) {
 			Lib.assertTrue(Machine.interrupt().disabled());
 			getThreadState(thread).waitForAccess(this);
@@ -114,13 +111,16 @@ public class PriorityScheduler extends Scheduler {
 		public KThread nextThread() {
 			Lib.assertTrue(Machine.interrupt().disabled());
 			ThreadState newHolder = this.waitQueue.pollLast(); //return null if waitQueue is empty
+
+      //When waitQueue is not empty
 			if (newHolder != null) {
 				this.acquire(newHolder.thread);
 				return newHolder.thread;
 			}
+      //When waitQueue is empty
 			else {
 				this.holder = null;
-			    return null;
+			  return null;
 			}
 		}
 		
@@ -128,10 +128,10 @@ public class PriorityScheduler extends Scheduler {
 			Lib.assertTrue(Machine.interrupt().disabled());
 			//TODO (optional)
 		}
-    }
+  }
 
-    protected class ThreadState {
-		//Fields
+  protected class ThreadState {
+    //Fields
 		protected KThread thread;
 		protected int priority;
 		public int effectivePriority;
@@ -149,6 +149,7 @@ public class PriorityScheduler extends Scheduler {
 			this.time = -1;
 		}
 
+
 		//Helper Methods
 		public int getPriority() {
 			return this.priority;
@@ -160,7 +161,6 @@ public class PriorityScheduler extends Scheduler {
 		
 		public void setPriority(int priority) {
 			this.priority = priority;
-
 			this.effectivePriority = priority;
 			
 			if (pqWant != null) {
@@ -199,36 +199,60 @@ public class PriorityScheduler extends Scheduler {
 			}
 			*/
 		}
-		
-		//Where is re-insertion in queue here? Is it error?
+
+		/*
+     * Name: setEffectivePriority
+     * Input: ThreadState
+     * Output: None
+     * We use setEffectivePriority() for waitForAcceess().
+     * Suppose we just added a ThreadState to a waitQueue and the holder has 
+     * smaller effectivePriority. In this case, we need to reset the
+     * effectivePriority of the holder.
+     */
 		public void setEffectivePriority(ThreadState donator) {
-		    this.effectivePriority = java.lang.Math.max(this.priority, java.lang.Math.max(this.effectivePriority, java.lang.Math.max(donator.priority, donator.effectivePriority)));
-			//Recursion here
-			if (this.pqWant != null && !pqWant.holder.equals(this)) {
+		  this.effectivePriority = max(this.priority, max(this.effectivePriority, max(donator.priority, donator.effectivePriority)));
+			if (this.pqWant != null && pqWant.holder != this) {
+        //Why do we need "pqWant.holder != this"?
+        //Is it even possible be a holder of a lock and wanting that lock at the same time?
+        this.pqWant.waitQueue.remove(this);
+        this.pqWant.waitQueue.add(this);
 				this.pqWant.holder.setEffectivePriority(this);
-			}
+      }
 		}
 		
+    /*
+     * Name: updateEffectivePriority
+     * Input: None
+     * Output: None
+     * We use updateEffectivePriority() for acquire().
+     * Suppose a holder of PriorityQueue is done with this resource.
+     * Then we need to reset the holder's effectivePriority one step back.
+     */
 		public void updateEffectivePriority() {
-			
-			int maxPriority = -1;
-			for (PriorityQueue pq: this.pqHave) {
-				maxPriority = java.lang.Math.max(maxPriority, pq.holder.getEffectivePriority());
-			}
+			int maxPriority = priorityMinimum;
+			for (PriorityQueue pq: this.pqHave)
+				maxPriority = max(maxPriority, pq.holder.getEffectivePriority());
+
 			if (maxPriority > this.effectivePriority) {
 				this.effectivePriority = maxPriority;
-				//add and remove from pqwant
-				if(this.pqWant != null) {
+        if(this.pqWant != null) {
 					this.pqWant.waitQueue.remove(this);
 					this.pqWant.waitQueue.add(this);
 				}
 			}
 		}
 		
-		//Action Methods
+
+    //Action Methods
+    /*
+     * Name: waitForAccess
+     * Input: PriorityQueue
+     * Output: None
+     * We use waitForAccess() when a ThreadState wants a lock
+     * but cannot get it because another ThreadState is holding
+     * the lock. So we add this ThreadState to pq.
+     */
 		public void waitForAccess(PriorityQueue pq) {
-			//Add this ThreadState to pq.waitQueue
-			//assert (pq.holder != null);
 			if (this.pqHave.contains(pq) == true)
 				this.pqHave.remove(pq);
 			this.pqWant = pq;
@@ -239,6 +263,13 @@ public class PriorityScheduler extends Scheduler {
 				pq.holder.setEffectivePriority(this);
 		}
 		
+    /*
+     * Name: acquire
+     * Input: PriorityQueue
+     * Output: None
+     * We use acquire() when this ThreadState is getting the lock.
+     * In other words, this ThreadState is set to the holder of pq.
+     */
 		public void acquire(PriorityQueue pq) {
 			//Adjust the state of prevHolder of pq
 			ThreadState prevHolder = pq.holder;
@@ -253,20 +284,8 @@ public class PriorityScheduler extends Scheduler {
 			pq.holder = this;
 			
 			//Set this ThreadState's effectivePriority back to its former state
-			/*
-			tempPriority = priorityMinimum;
-			pqHaveAry = prevHolder.pqHave.toArray();
-			for (i=0; i<pqHave.size(); i++) {
-				if (tempPriority < pqHaveAry[i].waitQueue.first().effectivePriority)
-					tempPriority = pqHaveAry[i].waitQueue.first().effectivePriority;
-			}
-			if (prevHolder.priority < tempPriority)
-				prevHolder.effectivePriority = tempPriority;
-			else
-				prevHolder.effectivePriority = prevHolder.priority;
-			*/
 			if (pq.transferPriority == true)
 				this.updateEffectivePriority();
 		}	
-    }
+  }
 }
