@@ -280,8 +280,11 @@ public class PriorityScheduler extends Scheduler {
 		public void acquire(PriorityQueue pq) {
 			//Adjust the state of prev pq holder (ThreadState)
 			ThreadState prevHolder = pq.holder;
-			if (prevHolder != null)
+			if (prevHolder != null) {
 				prevHolder.pqHave.remove(pq);
+        if (pq.transferPriority == true)
+          prevHolder.updateEffectivePriority();
+      }
 
 			//Adjust the state of this ThreadState 
 			if (this.pqWant != null && this.pqWant.equals(pq))
@@ -292,9 +295,6 @@ public class PriorityScheduler extends Scheduler {
 			pq.waitQueue.remove(this);
 			pq.holder = this;	
 			
-      //Adjust the effectivePriority of prev pq holder
-			if (pq.transferPriority == true)
-				prevHolder.updateEffectivePriority();
 		}	
   }
 }
