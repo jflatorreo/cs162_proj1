@@ -67,6 +67,10 @@ public class PriorityScheduler extends Scheduler {
 		Machine.interrupt().restore(intStatus);
 		return true;
   }  
+  
+  public static void selfTest() {
+	  
+  }
 
 
   protected class PriorityQueue extends ThreadQueue {
