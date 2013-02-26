@@ -1,7 +1,7 @@
 package nachos.threads;
 
 import nachos.machine.*;
-
+import java.util.PriorityQueue;
 /**
  * Uses the hardware timer to provide preemption, and to allow threads to sleep
  * until a certain time.
@@ -15,6 +15,7 @@ public class Alarm {
      * alarm.
      */
     public Alarm() {
+    waitingThreads = new PriorityQueue();
 	Machine.timer().setInterruptHandler(new Runnable() {
 		public void run() { timerInterrupt(); }
 	    });
@@ -27,7 +28,22 @@ public class Alarm {
      * that should be run.
      */
     public void timerInterrupt() {
-	KThread.currentThread().yield();
+
+    long currentTime = Machine.timer().getTime();
+    
+    TimeWaitingKThread current =  waitingThreads.peek();
+    boolean intStatus = Machine.interrupt().disable();
+    System.out.println(currentTime);
+    while((current!=null)&&(current.getWakeTime()<currentTime)){
+        current = waitingThreads.poll();
+        current.wake();
+        Machine.interrupt().restore(intStatus);
+        current = waitingThreads.peek();
+    }
+
+    Machine.interrupt().restore(intStatus);
+	
+    KThread.currentThread().yield();
     }
 
     /**
@@ -45,9 +61,16 @@ public class Alarm {
      * @see	nachos.machine.Timer#getTime()
      */
     public void waitUntil(long x) {
-	// for now, cheat just to get something working (busy waiting is bad)
-	long wakeTime = Machine.timer().getTime() + x;
-	while (wakeTime > Machine.timer().getTime())
-	    KThread.yield();
+	   long wakeTime = Machine.timer().getTime() + x;
+        System.out.println(wakeTime);
+       boolean intStatus = Machine.interrupt().disable();
+	   waitingThreads.add(new TimeWaitingKThread(KThread.currentThread(), wakeTime));
+       KThread.sleep();
+       Machine.interrupt().restore(intStatus);
+
     }
+    public static void selfTest(){
+        ThreadedKernel.alarm.waitUntil(600);
+    }
+    PriorityQueue <TimeWaitingKThread> waitingThreads;
 }
