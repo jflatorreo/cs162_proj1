@@ -259,7 +259,7 @@ public class PriorityScheduler extends Scheduler {
 				}
 			}
 			else
-				this.effectivePriority = max(this.priority, maxPriority);
+				pqWant.updateEntry(this, max(this.priority, maxPriority));
 		}
 		
 
