@@ -77,7 +77,7 @@ public class PriorityScheduler extends Scheduler {
 		public ThreadState holder;
 		public TreeSet<ThreadState> waitQueue ; //max effectivePriority/time pops first.
 		public boolean transferPriority;
-		
+
 		//Constructor
 		PriorityQueue(boolean transferPriority) {
 			this.transferPriority = transferPriority;
@@ -148,7 +148,7 @@ public class PriorityScheduler extends Scheduler {
 			this.pqHave = new ArrayList<PriorityQueue>();
 			this.setPriority(priorityDefault);
 			this.pqWant = null;
-			this.time = -1;
+      this.time = Long.MAX_VALUE;
 		}
 
 
@@ -238,8 +238,8 @@ public class PriorityScheduler extends Scheduler {
 					maxPriority = max(maxPriority, pq.holder.getEffectivePriority());
 			
       //If there is a change in priority, update and propagate to other owners
-			if (maxPriority > this.effectivePriority) {
-				this.effectivePriority = maxPriority;
+			if (maxPriority != this.effectivePriority) {
+				this.effectivePriority = max(this.priority, maxPriority);
 				if(this.pqWant != null) {
 					//Readjust myself in the pq with new priority
 					this.pqWant.waitQueue.remove(this);
@@ -294,7 +294,6 @@ public class PriorityScheduler extends Scheduler {
       //Adjust the state of pq
 			pq.waitQueue.remove(this);
 			pq.holder = this;	
-			
 		}	
   }
 }
