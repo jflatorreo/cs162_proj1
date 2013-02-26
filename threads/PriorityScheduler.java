@@ -220,14 +220,17 @@ public class PriorityScheduler extends Scheduler {
      * effectivePriority of the holder.
      */
 		public void setEffectivePriority(ThreadState donator) {
-      if (this.pqWant != null && this.pqWant.transferPriority != true)
-        return;
-          int newPriority = max(this.effectivePriority, donator.effectivePriority);
-		  if (this.effectivePriority !=  newPriority && pqWant != null) {
-				pqWant.updateEntry(this, newPriority);
-			  if (pqWant.transferPriority == true)
-				  this.pqWant.holder.setEffectivePriority(this);
-      }
+			if (this.pqWant != null && this.pqWant.transferPriority != true)
+				return;
+			int newPriority = max(this.effectivePriority, donator.effectivePriority);
+			if (this.effectivePriority !=  newPriority)
+				if (pqWant != null) {
+					pqWant.updateEntry(this, newPriority);
+					this.pqWant.holder.setEffectivePriority(this);
+					return;
+				}
+				this.effectivePriority = newPriority;
+			}
 		}
 		
     /*
@@ -252,7 +255,7 @@ public class PriorityScheduler extends Scheduler {
 					//Readjust myself in the pq with new priority
 					maxPriority = max(this.priority, maxPriority);
 					pqWant.updateEntry(this, maxPriority);
-					this.priority = maxPriority;
+					//this.priority = maxPriority;
 					//Donate my priority to pq owner
 					if (pqWant.transferPriority == true)
 						pqWant.holder.setEffectivePriority(this);
