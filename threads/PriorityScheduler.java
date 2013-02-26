@@ -11,6 +11,7 @@ public class PriorityScheduler extends Scheduler {
   public static final int priorityDefault = 1;
   public static final int priorityMinimum = 0;
   public static final int priorityMaximum = 7;
+  public static int TickTimer = 0;
 	
 	//Constructor
 	public PriorityScheduler() {
@@ -88,7 +89,7 @@ public class PriorityScheduler extends Scheduler {
 					if (ts1.getEffectivePriority() < ts2.getEffectivePriority())
 						return -1;
 					else if (ts1.getEffectivePriority() == ts2.getEffectivePriority()) 
-						return new Long(ts2.time).compareTo(ts1.time);
+						return new Integer(ts2.time).compareTo(ts1.time);
 					else return 1;
 				}
 			});
@@ -147,7 +148,7 @@ public class PriorityScheduler extends Scheduler {
 		public int effectivePriority;
 		public ArrayList<PriorityQueue> pqHave;
 		public PriorityQueue pqWant;
-		public long time;
+		public int time;
 		
 		
 		//Constructor
@@ -273,7 +274,8 @@ public class PriorityScheduler extends Scheduler {
      */
 		public void waitForAccess(PriorityQueue pq) {
 			this.pqWant = pq;
-			this.time = Machine.timer().getTime();
+			//this.time = Machine.timer().getTime();
+			this.time = TickTimer++;
 			pq.waitQueue.add(this);
 			//Propagate this ThreadState's effectivePriority to holder of pq
 			if (pq.transferPriority == true)
