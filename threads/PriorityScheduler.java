@@ -85,8 +85,8 @@ public class PriorityScheduler extends Scheduler {
 			waitQueue = new TreeSet<ThreadState>(new Comparator<ThreadState>() {
 				public int compare(ThreadState ts1, ThreadState ts2) {
 					if (ts1.getEffectivePriority() == ts2.getEffectivePriority())
-						return (new Long(ts1.time).compareTo(ts2.time));
-					return (new Integer(ts2.getEffectivePriority()).compareTo(ts1.getEffectivePriority()));
+						return new Long(ts2.time).compareTo(ts1.time);
+					return (new Integer(ts1.getEffectivePriority()).compareTo(ts2.getEffectivePriority()));
 				}
 			});
 		}
@@ -204,7 +204,7 @@ public class PriorityScheduler extends Scheduler {
 		public void setEffectivePriority(ThreadState donator) {
 		    this.effectivePriority = java.lang.Math.max(this.priority, java.lang.Math.max(this.effectivePriority, java.lang.Math.max(donator.priority, donator.effectivePriority)));
 			//Recursion here
-			if (this.pqWant != null && !pqWant.holder.equals(this)) {
+			if (this.pqWant != null && pqWant.holder != this) {
 				this.pqWant.holder.setEffectivePriority(this);
 			}
 		}
