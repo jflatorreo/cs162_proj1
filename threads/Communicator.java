@@ -41,11 +41,11 @@ public class Communicator {
     public void speak(int word) {
     	lock.acquire();
     	
-    	while(liveSpeaker == 1) {
+    	while(liveSender == 1) {
     		waitingSenders.sleep();
     	}
     	
-    	liveSpeaker = 1;
+    	liveSender = 1;
     	value = word;
     	
     	while(liveReceiver == 0) {
@@ -70,13 +70,13 @@ public class Communicator {
     public int listen() {
     	lock.acquire();
     	
-    	while(liveListener == 1){
+    	while(liveReceiver == 1){
     		waitingReceivers.sleep();
     	}
     	
-    	liveListener = 1;
+    	liveReceiver = 1;
     	
-    	while(liveSpeaker == 0){
+    	while(liveSender == 0){
     		waitingSenders.wake();
     		waitingReceivers.sleep();
     	}
@@ -86,7 +86,7 @@ public class Communicator {
     	
     	int result = value;
     	lock.release();
-    	liveSpeaker = 0;
+    	liveSender = 0;
     	
     	return result;
     }
