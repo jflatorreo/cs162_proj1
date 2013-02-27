@@ -22,8 +22,8 @@ public class Boat {
 	//Fields
     static BoatGrader bg;
     static Lock boatLock;
-    static Condition2 waitingOnOahu;
-    static Condition2 waitingOnMolokai;
+    static Condition waitingOnOahu;
+    static Condition waitingOnMolokai;
 	private static boolean pilot;
 	private static boolean pilotIsChild;
 	private static boolean passenger;
@@ -39,8 +39,8 @@ public class Boat {
     	// Instantiate global variables here
 		bg = b;
 		boatLock = new Lock();
-		waitingOnOahu = new Condition2(boatLock);
-		waitingOnMolokai = new Condition2(boatLock);
+		waitingOnOahu = new Condition(boatLock);
+		waitingOnMolokai = new Condition(boatLock);
 		pilot = false;
 		passenger = false;
 		boatInOahu = true;
@@ -49,6 +49,7 @@ public class Boat {
 		adultInOahu = 0;
 		adultInMolokai = 0;
 		numChildLeftOahu = 0;
+		
 		//Start Threads
 		for (int i=0; i<children; i++){
 			//Start Children Threads here
@@ -66,27 +67,29 @@ public class Boat {
 			adultThread.setName("ADULT " + i+1);
 			adultThread.fork();
 		}
-		System.out.println("end of begin.......");
 		
 		while (true) {
+			//System.out.println("@@@@@@@ childInMolokai : " + childInMolokai + " , adultInMolokai : " + adultInMolokai);
+			boatLock.acquire();
 			if (childInMolokai == children && adultInMolokai == adults) {
 				break;
 			}
-			boatLock.acquire();
 			if (boatInOahu)
 				waitingOnOahu.wake();
 			else
 				waitingOnMolokai.wake();
+			
 			boatLock.release();
 		}
+		boatLock.release();
 		System.out.println("We are done!");
     }
 
     static void AdultItinerary() {
 		boatLock.acquire();
-		waitingOnOahu.sleep();
 		adultInOahu++;
 		boolean inOahu = true;
+		waitingOnOahu.sleep();
 		// do things later
 		while (true) {
 			if (inOahu && boatInOahu && childInOahu < 2 && !pilotIsChild){
@@ -100,10 +103,14 @@ public class Boat {
 				break;
 			}
 			else {
-				if (boatInOahu)
+				if (boatInOahu) {
+					waitingOnOahu.wake();
 					waitingOnOahu.sleep();
-				else
+				}
+				else {
+					waitingOnOahu.wake();
 					waitingOnMolokai.sleep();
+				}
 			}
 				
 		}
@@ -111,9 +118,10 @@ public class Boat {
 
     static void ChildItinerary() {
     	boatLock.acquire();
-    	waitingOnOahu.sleep();
     	childInOahu++;
     	boolean inOahu = true;
+    	waitingOnOahu.sleep();
+    	// What I remember the number of children/adults when I left Oahu
     	while (true) {
     		if (inOahu && boatInOahu && ((childInOahu > 1 && !pilotIsChild) || pilotIsChild ) ) {
     			//Get pilot or passenger if 2 childs or more in Oahu
@@ -123,6 +131,7 @@ public class Boat {
     				bg.ChildRowToMolokai();
     				inOahu = !inOahu;
     				childInMolokai++;
+    				
     				//If we can load a passenger, do not move boat yet, and try to load child
     				if (childInOahu != 0) {
     					waitingOnOahu.wake();
@@ -143,10 +152,18 @@ public class Boat {
     				boatInOahu = !boatInOahu;
     				childInMolokai++;
     				
+    				// need communicator to check if it is done.
     				waitingOnMolokai.wake();
     				waitingOnMolokai.sleep();
     			}
-    			
+    		} else if (inOahu && boatInOahu && childInOahu == 1 && adultInOahu == 0) {
+				childInOahu--;
+				bg.ChildRowToMolokai();
+				inOahu = !inOahu;
+				childInMolokai++;
+				
+				boatLock.release();
+				break;
     		}
     		else if (!inOahu && !boatInOahu) {
     			childInMolokai--;
@@ -168,8 +185,6 @@ public class Boat {
 				}
 			}
     	}
-    	
-    	
     }
 
     static void SampleItinerary() {
@@ -185,7 +200,7 @@ public class Boat {
     }
 	
 	public static void selfTest() {
-		
+		/*
 		BoatGrader b = new BoatGrader();
 	
 		System.out.println("\n ***Testing Boats with only 2 children***");
@@ -197,5 +212,10 @@ public class Boat {
 		System.out.println("\n ***Testing Boats with 3 children, 3 adults***");
 		//begin(3, 3, b);
 		
+		//begin(10, 10, b);
+
+		System.out.println("\n ***Testing Boats with 100 children, 100 adults***");
+		//begin(100, 100, b);
+		*/
     }
 }
