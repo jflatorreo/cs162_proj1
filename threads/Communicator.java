@@ -11,8 +11,8 @@ import nachos.machine.*;
  */
 public class Communicator {
 	Lock lock;
-	Condition waitingReceivers;
-	Condition waitingSenders;
+	Condition2 waitingReceivers;
+	Condition2 waitingSenders;
 	int liveSender;
 	int liveReceiver;
 	int value;
@@ -21,11 +21,11 @@ public class Communicator {
      */
     public Communicator() {
     	lock = new Lock();
-    	waitingReceivers = new Condition(lock);
-    	waitingSenders = new Condition(lock);
+    	waitingReceivers = new Condition2(lock);
+    	waitingSenders = new Condition2(lock);
     	liveReceiver = 0;
     	liveSender = 0;
-    	value = -1;
+    	value = 0;
     }
 
     /**
@@ -40,7 +40,7 @@ public class Communicator {
      */
     public void speak(int word) {
     	lock.acquire();
-    	/*
+    	
     	while(liveSender == 1) {
     		waitingSenders.sleep();
     	}
@@ -57,14 +57,6 @@ public class Communicator {
     	
     	waitingSenders.wake();
     	waitingReceivers.wake();
-    	*/
-    	
-    	if (liveReceiver == 0) waitingSenders.sleep();
-    	
-    	liveReceiver--;
-    	value = word;
-    	
-    	waitingReceivers.wake();
     	
     	lock.release();
     }
@@ -77,7 +69,6 @@ public class Communicator {
      */    
     public int listen() {
     	lock.acquire();
-    	/*
     	
     	while(liveReceiver == 1){
     		waitingReceivers.sleep();
@@ -95,15 +86,8 @@ public class Communicator {
     	
     	liveSender = 0;
     	int result = value;
-    	*/
-    	
-    	liveReceiver++;
-    	waitingSenders.wake();
-    	
-    	if(value == -1) waitingReceivers.sleep();
-    	
     	lock.release();
     	
-    	return value;
+    	return result;
     }
 }
