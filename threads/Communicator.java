@@ -73,7 +73,7 @@ public class Communicator {
     	senders--;
     	int result = value;
     	live = 0;
-    	waitingSenders.wake()	
+    	waitingSenders.wake();	
     	lock.release();
     	return result;
     }
