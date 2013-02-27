@@ -44,6 +44,7 @@ public class Communicator {
     	lock.acquire();
     	senders++;
     	while(live == 1 || receivers == 0) {
+    		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
     	receivers--;
