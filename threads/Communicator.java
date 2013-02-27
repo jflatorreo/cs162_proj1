@@ -13,9 +13,8 @@ public class Communicator {
 	Lock lock;
 	Condition2 waitingReceivers;
 	Condition2 waitingSenders;
-	int senders;
-	int receivers;
-	int live;
+	int liveSender;
+	int liveReceiver;
 	int value;
     /**
      * Allocate a new communicator.
@@ -24,9 +23,8 @@ public class Communicator {
     	lock = new Lock();
     	waitingReceivers = new Condition2(lock);
     	waitingSenders = new Condition2(lock);
-    	receivers = 0;
-    	senders = 0;
-    	live = 0;
+    	liveReceiver = 0;
+    	liveSender = 0;
     	value = 0;
     }
 
@@ -42,15 +40,24 @@ public class Communicator {
      */
     public void speak(int word) {
     	lock.acquire();
-    	senders++;
-    	while(live == 1 || receivers == 0) {
+    	
+    	while(liveSpeaker == 1) {
+    		waitingSenders.sleep();
+    	}
+    	
+    	liveSpeaker = 1;
+    	value = word;
+    	
+    	while(liveReceiver == 0) {
     		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
-    	receivers--;
-    	value = word;
-    	live = 1;
+    	
+    	liveReceiver = 0;
+    	
+    	waitingSenders.wake();
     	waitingReceivers.wake();
+    	
     	lock.release();
     }
 
@@ -62,20 +69,25 @@ public class Communicator {
      */    
     public int listen() {
     	lock.acquire();
-    	receivers++;
-    	while(live == 0){
-    		if(senders == 0) 
-    			waitingReceivers.sleep();
-    		else {
-    			waitingSenders.wake();
-    			waitingReceivers.sleep();
-    		}
+    	
+    	while(liveListener == 1){
+    		waitingReceivers.sleep();
     	}
-    	senders--;
+    	
+    	liveListener = 1;
+    	
+    	while(liveSpeaker == 0){
+    		waitingSenders.wake();
+    		waitingReceivers.sleep();
+    	}
+    	
+    	waitingSenders.wake();
+    	waitingReceivers.wake();
+    	
     	int result = value;
-    	live = 0;
-    	waitingSenders.wake();	
     	lock.release();
+    	liveSpeaker = 0;
+    	
     	return result;
     }
 }
