@@ -84,9 +84,10 @@ public class Communicator {
     	waitingSenders.wake();
     	waitingReceivers.wake();
     	
+    	int result = value;
     	lock.release();
     	liveSpeaker = 0;
     	
-    	return value;
+    	return result;
     }
 }
