@@ -10,17 +10,24 @@ import nachos.machine.*;
  * threads can be paired off at this point.
  */
 public class Communicator {
+	Lock lock;
+	Condition2 waitingReceivers;
+	Condition2 waitingSenders;
+	int receivers;
+	int senders;
+	int live;
+	int value;
     /**
      * Allocate a new communicator.
      */
     public Communicator() {
-    	Lock lock = new Lock();
-    	Condition2 waitingReceivers = new Condition2(lock);
-    	Condition2 waitingSenders = new Condition2(lock);
-    	int receivers = 0;
-    	int senders = 0;
-    	int live = 0;
-    	int value;
+    	lock = new Lock();
+    	waitingReceivers = new Condition2(lock);
+    	waitingSenders = new Condition2(lock);
+    	receivers = 0;
+    	senders = 0;
+    	live = 0;
+    	value = 0;
     }
 
     /**
@@ -66,4 +73,5 @@ public class Communicator {
     	live = 0;
     	lock.release();
     	return result;
+    }
 }
