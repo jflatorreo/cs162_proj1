@@ -66,7 +66,6 @@ public class Communicator {
     		if(senders == 0) 
     			waitingReceivers.sleep();
     		else {
-    			//For when multiple speakers were waiting
     			waitingSenders.wake();
     			waitingReceivers.sleep();
     		}
@@ -74,6 +73,7 @@ public class Communicator {
     	senders--;
     	int result = value;
     	live = 0;
+    	waitingSenders.wake()	
     	lock.release();
     	return result;
     }
