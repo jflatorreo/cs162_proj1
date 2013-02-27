@@ -14,6 +14,7 @@ public class Communicator {
 	Condition2 waitingReceivers;
 	Condition2 waitingSenders;
 	int senders;
+	int receivers;
 	int live;
 	int value;
     /**
@@ -23,6 +24,7 @@ public class Communicator {
     	lock = new Lock();
     	waitingReceivers = new Condition2(lock);
     	waitingSenders = new Condition2(lock);
+    	receivers = 0;
     	senders = 0;
     	live = 0;
     	value = 0;
@@ -41,9 +43,10 @@ public class Communicator {
     public void speak(int word) {
     	lock.acquire();
     	senders++;
-    	while(live == 1) {
+    	while(live == 1 || receivers == 0) {
     		waitingSenders.sleep();
     	}
+    	receivers--;
     	value = word;
     	live = 1;
     	waitingReceivers.wake();
@@ -58,10 +61,12 @@ public class Communicator {
      */    
     public int listen() {
     	lock.acquire();
+    	receivers++;
     	while(live == 0){
-    		if(senders == 0)
+    		if(senders == 0) 
     			waitingReceivers.sleep();
     		else {
+    			//For when multiple speakers were waiting
     			waitingSenders.wake();
     			waitingReceivers.sleep();
     		}
