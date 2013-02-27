@@ -25,7 +25,7 @@ public class Communicator {
     	waitingSenders = new Condition(lock);
     	liveReceiver = 0;
     	liveSender = 0;
-    	value = 0;
+    	value = -1;
     }
 
     /**
@@ -40,7 +40,7 @@ public class Communicator {
      */
     public void speak(int word) {
     	lock.acquire();
-    	
+    	/*
     	while(liveSender == 1) {
     		waitingSenders.sleep();
     	}
@@ -57,6 +57,14 @@ public class Communicator {
     	
     	waitingSenders.wake();
     	waitingReceivers.wake();
+    	*/
+    	
+    	if (liveReceiver == 0) waitingSenders.sleep();
+    	
+    	liveReceiver--;
+    	value = word;
+    	
+    	waitingReceivers.wake();
     	
     	lock.release();
     }
@@ -69,6 +77,7 @@ public class Communicator {
      */    
     public int listen() {
     	lock.acquire();
+    	/*
     	
     	while(liveReceiver == 1){
     		waitingReceivers.sleep();
@@ -86,8 +95,15 @@ public class Communicator {
     	
     	liveSender = 0;
     	int result = value;
+    	*/
+    	
+    	liveReceiver++;
+    	waitingSenders.wake();
+    	
+    	if(value == -1) waitingReceivers.sleep();
+    	
     	lock.release();
     	
-    	return result;
+    	return value;
     }
 }
