@@ -23,32 +23,42 @@ public class Boat {
     static BoatGrader bg;
 	private static boolean pilot;
 	private static boolean passenger;
-	private static boolean boatInA;
-	private static boolean boatInB;
+	private static boolean boatInOahu;
 	private static boolean boatDeparting;
-	private static int childInA;
-	private static int childInB;
-	private static int adultInA;
-	private static int adultInB;
+	private static int childInOahu;
+	private static int childInMolokai;
+	private static int adultInOahu;
+	private static int adultInMolokai;
 
 	//Action Methods
     public static void begin( int adults, int children, BoatGrader b ) {
+    	// Instantiate global variables here
 		bg = b;
 		pilot = false;
 		passenger = false;
-		boatInA = true;
-		boatInB = false;
+		boatInOahu = true;
 		boatDeparting = false;
-		childInA = children;
-		childInB = 0;
-		adultInA = adults;
-		adultInB = 0;
-
-		// Instantiate global variables here
-	
-		// Create threads here. See section 3.4 of the Nachos for Java
-		// Walkthrough linked from the projects page.
-
+		childInOahu = children;
+		childInMolokai = 0;
+		adultInOahu = adults;
+		adultInMolokai = 0;
+		//Start Threads
+		for (int i=0; i<children; i++){
+			//Start Children Threads here
+			KThread childThread = new KThread(new Runnable() {
+				public void run () {ChildItinerary();}
+			});
+			childThread.fork();
+		}
+		for (int i=0; i<adults; i++){
+			//Start Adults Threads here
+			KThread adultThread = new KThread(new Runnable() {
+				public void run () {AdultItinerary();}
+			});
+			adultThread.fork();
+		}
+		//Start looping between threads till condition finish
+		
 		Runnable r = new Runnable() {
 			public void run() {
                 SampleItinerary();
