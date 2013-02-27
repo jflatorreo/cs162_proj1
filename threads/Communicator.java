@@ -11,8 +11,8 @@ import nachos.machine.*;
  */
 public class Communicator {
 	Lock lock;
-	Condition2 waitingReceivers;
-	Condition2 waitingSenders;
+	Condition waitingReceivers;
+	Condition waitingSenders;
 	int liveSender;
 	int liveReceiver;
 	int value;
@@ -21,8 +21,8 @@ public class Communicator {
      */
     public Communicator() {
     	lock = new Lock();
-    	waitingReceivers = new Condition2(lock);
-    	waitingSenders = new Condition2(lock);
+    	waitingReceivers = new Condition(lock);
+    	waitingSenders = new Condition(lock);
     	liveReceiver = 0;
     	liveSender = 0;
     	value = 0;
