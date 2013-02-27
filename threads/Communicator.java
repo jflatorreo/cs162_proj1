@@ -13,8 +13,9 @@ public class Communicator {
 	Lock lock;
 	Condition2 waitingReceivers;
 	Condition2 waitingSenders;
-	int liveSender;
-	int liveReceiver;
+	Condition2 waitingLiveReceiver;
+	KThread liveSender;
+	KThread liveReceiver;
 	int value;
     /**
      * Allocate a new communicator.
@@ -23,8 +24,9 @@ public class Communicator {
     	lock = new Lock();
     	waitingReceivers = new Condition2(lock);
     	waitingSenders = new Condition2(lock);
-    	liveReceiver = 0;
-    	liveSender = 0;
+    	waitingLiveReceiver = new Condition2(lock);
+    	liveReceiver = null;
+    	liveSender = null;
     	value = 0;
     }
 
@@ -40,24 +42,25 @@ public class Communicator {
      */
     public void speak(int word) {
     	lock.acquire();
-    	
-    	while(liveSender == 1) {
+    	//While another thread has loaded his parameter and
+    	//is waiting for a receiver to return it then
+    	//put this sender on the waitQueue
+    	while(liveSender != null) {
     		waitingSenders.sleep();
     	}
-    	
-    	liveSender = 1;
+    	//There is no thread waiting to send this value
+    	//to a receiver and so this thread loads its value
+    	//and becomes the nest thread to send
+    	liveSender = KThread.currentThread();
     	value = word;
     	
-    	while(liveReceiver == 0) {
+    	while(liveReceiver == null) {
     		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
-    	
-    	liveReceiver = 0;
-    	
+    	liveReceiver = null;
+    	waitingLiveReceiver.wake();
     	waitingSenders.wake();
-    	waitingReceivers.wake();
-    	
     	lock.release();
     }
 
@@ -70,21 +73,21 @@ public class Communicator {
     public int listen() {
     	lock.acquire();
     	
-    	while(liveReceiver == 1){
+    	while(liveReceiver != null){
     		waitingReceivers.sleep();
     	}
     	
-    	liveReceiver = 1;
+    	liveReceiver = KThread.currentThread();
     	
-    	while(liveSender == 0){
+    	while(liveSender == null){
     		waitingSenders.wake();
-    		waitingReceivers.sleep();
+    		waitingLiveReceiver.sleep();
     	}
     	
     	waitingSenders.wake();
     	waitingReceivers.wake();
     	
-    	liveSender = 0;
+    	liveSender = null;
     	int result = value;
     	lock.release();
     	
