@@ -48,14 +48,6 @@ public class Boat {
 		adultInMolokai = 0;
 		
 		//Start Threads
-		for (int i=0; i<children; i++){
-			//Start Children Threads here
-			KThread childThread = new KThread(new Runnable() {
-				public void run () {ChildItinerary();}
-			});
-			childThread.setName("CHILD " + i+1);
-			childThread.fork();
-		}
 		for (int i=0; i<adults; i++){
 			//Start Adults Threads here
 			KThread adultThread = new KThread(new Runnable() {
@@ -63,6 +55,14 @@ public class Boat {
 			});
 			adultThread.setName("ADULT " + i+1);
 			adultThread.fork();
+		}
+		for (int i=0; i<children; i++){
+			//Start Children Threads here
+			KThread childThread = new KThread(new Runnable() {
+				public void run () {ChildItinerary();}
+			});
+			childThread.setName("CHILD " + i+1);
+			childThread.fork();
 		}
 		
 		while (true) {
@@ -99,7 +99,6 @@ public class Boat {
 				
 				waitingOnMolokai.wake();
 				waitingOnMolokai.sleep();
-				//System.out.println("ADULT WOKE UP from loc 1 ");
 			}
 			else if (!inOahu && !boatInOahu && childInMolokai == 0) {
 				//System.out.println("ADULT if #2");
@@ -235,7 +234,7 @@ public class Boat {
 		//begin(0, 2, b);
 
 		System.out.println("\n ***Testing Boats with 2 children, 1 adult***");
-		//begin(1, 2, b);
+		begin(1, 2, b);
 
 		System.out.println("\n ***Testing Boats with 3 children, 3 adults***");
 		//begin(3, 3, b);
@@ -244,6 +243,6 @@ public class Boat {
 
 		System.out.println("\n ***Testing Boats with 100 children, 100 adults***");
 		//begin(100, 100, b);
-		*/
+		//*/
 	}
 }
