@@ -173,7 +173,7 @@ public class KThread {
 	
 	public static void yield() {
 		Lib.debug(dbgThread, "Yielding thread: " + currentThread.toString());
-		System.out.println("Yielding thread: " + currentThread.toString());
+		//System.out.println("Yielding thread: " + currentThread.toString());
 		Lib.assertTrue(currentThread.status == statusRunning);
 		
 		boolean intStatus = Machine.interrupt().disable();

@@ -24,6 +24,7 @@ public class Boat {
 	static Lock boatLock;
 	static Condition waitingOnOahu;
 	static Condition waitingOnMolokai;
+	static Communicator notifyToBegin;
 	private static boolean boatInOahu;
 	private static boolean pilotIsChild;
 	private static int childInOahu;
@@ -38,6 +39,7 @@ public class Boat {
 		boatLock = new Lock();
 		waitingOnOahu = new Condition(boatLock);
 		waitingOnMolokai = new Condition(boatLock);
+		notifyToBegin = new Communicator();
 		boatInOahu = true;
 		pilotIsChild = false;
 		childInOahu = 0;
@@ -64,44 +66,60 @@ public class Boat {
 		}
 		
 		while (true) {
+			notifyToBegin.listen();
 			boatLock.acquire();
+			
 			if (childInMolokai == children && adultInMolokai == adults) {
 				break;
 			}
-			if (boatInOahu)
-				waitingOnOahu.wake();
-			else
-				waitingOnMolokai.wake();
 			
+			if (boatInOahu) {
+				waitingOnOahu.wake();
+			}
+			else {
+				waitingOnMolokai.wake();
+			}
 			boatLock.release();
 		}
-		boatLock.release();
 	}
 
 	static void AdultItinerary() {
 		boatLock.acquire();
 		adultInOahu++;
 		boolean inOahu = true;
-		waitingOnOahu.sleep();
 		// do things later
 		while (true) {
 			if (inOahu && boatInOahu && childInOahu < 2 && !pilotIsChild){
+				//System.out.println("ADULT if #1");
 				adultInOahu--;
 				bg.AdultRowToMolokai();
 				boatInOahu = !boatInOahu;
 				inOahu = !inOahu;
 				adultInMolokai++;
-				waitingOnOahu.wake();
-				boatLock.release();
-				break;
+				
+				waitingOnMolokai.wake();
+				waitingOnMolokai.sleep();
+				//System.out.println("ADULT WOKE UP from loc 1 ");
+			}
+			else if (!inOahu && !boatInOahu && childInMolokai == 0) {
+				//System.out.println("ADULT if #2");
+					adultInMolokai--;
+					bg.AdultRowToOahu();
+					boatInOahu = !boatInOahu;
+					inOahu = !inOahu;
+					adultInOahu++;
+					waitingOnOahu.wake();
+					waitingOnOahu.sleep();
+					//System.out.println("ADULT WOKE UP from loc 2 ");
 			}
 			else {
-				if (boatInOahu) {
+				//System.out.println("ADULT if #3");
+				if (inOahu) {
 					waitingOnOahu.wake();
 					waitingOnOahu.sleep();
 				}
 				else {
-					waitingOnOahu.wake();
+					waitingOnMolokai.wake();
 					waitingOnMolokai.sleep();
 				}
 			}
@@ -113,8 +131,8 @@ public class Boat {
 		boatLock.acquire();
 		childInOahu++;
 		boolean inOahu = true;
-		waitingOnOahu.sleep();
-		
+		int childInOahu_past = 0;
+		int adultInOahu_past = 0;
 		while (true) {
 			if (inOahu && boatInOahu && ((childInOahu > 1 && !pilotIsChild) || pilotIsChild ) ) {
 				//Get pilot or passenger if 2 childs or more in Oahu
@@ -127,6 +145,7 @@ public class Boat {
 					
 					//If we can load a passenger, do not move boat yet, and try to load child
 					if (childInOahu != 0) {
+						//System.out.println("Child 1 calling another child to pick up the boat");
 						waitingOnOahu.wake();
 					}
 					//Else do the trip and search for next to go back. This is done so that is we have only a child Thread active we dont infinite loop
@@ -135,29 +154,46 @@ public class Boat {
 						pilotIsChild = false;
 						waitingOnMolokai.wake();
 					}
+					//System.out.println("Child1 is sleeping");
 					waitingOnMolokai.sleep();
+					//System.out.println("CHILD1 IS WOKE UP");
 				}
 				else {
 					pilotIsChild = false;
 					childInOahu--;
+					childInOahu_past = childInOahu;
+					adultInOahu_past = adultInOahu;
 					bg.ChildRideToMolokai();
 					inOahu = !inOahu;
 					boatInOahu = !boatInOahu;
 					childInMolokai++;
 					
-					waitingOnMolokai.wake();
+					if (childInOahu_past == 0 && adultInOahu_past == 0) {
+						///System.out.println("true");
+						notifyToBegin.speak(1);
+					}
+					else { 
+						//System.out.println("false");
+						waitingOnMolokai.wake();
+					}
+					//System.out.println("Makeing ME SLEEP");
 					waitingOnMolokai.sleep();
+					//System.out.println("Waking up from sleep");
 				}
 			} else if (inOahu && boatInOahu && childInOahu == 1 && adultInOahu == 0) {
+				//System.out.println("2nd if CHILD going to molokai");
+				pilotIsChild = false;
 				childInOahu--;
 				bg.ChildRowToMolokai();
 				inOahu = !inOahu;
+				boatInOahu = !boatInOahu;
 				childInMolokai++;
 				
-				boatLock.release();
-				break;
+				notifyToBegin.speak(1);
+				waitingOnMolokai.sleep();
 			}
 			else if (!inOahu && !boatInOahu) {
+				//System.out.println("go to oahuuuuuuuu");
 				childInMolokai--;
 				bg.ChildRowToOahu();
 				boatInOahu = !boatInOahu;
