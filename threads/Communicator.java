@@ -58,8 +58,8 @@ public class Communicator {
     		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
+    	liveSender = null;
     	waitingLiveReceiver.wake();
-    	waitingSenders.wake();
     	lock.release();
     }
 
@@ -86,7 +86,6 @@ public class Communicator {
     	waitingSenders.wake();
     	waitingReceivers.wake();
     	
-    	liveSender = null;
     	liveReceiver = null;
     	int result = value;
     	lock.release();
