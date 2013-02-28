@@ -70,7 +70,8 @@ public class Communicator {
      */    
     public int listen() {
     	lock.acquire();
-    	while(liveReceiver != null){
+    	while(liveReceiver != null)
+    		waitingSenders.wake();
     		waitingReceivers.sleep();
     	}
     	liveReceiver = KThread.currentThread();
