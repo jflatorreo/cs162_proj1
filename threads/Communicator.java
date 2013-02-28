@@ -14,7 +14,6 @@ public class Communicator {
 	Condition2 waitingReceivers;
 	Condition2 waitingSenders;
 	Condition2 waitingLiveReceiver;
-	KThread liveSender;
 	KThread liveReceiver;
 	int value;
     /**
@@ -58,13 +57,7 @@ public class Communicator {
     	*/
     	value = word;
     	
-<<<<<<< HEAD
     	waitingLiveReceiver.wake();
-=======
-    	liveReceiver = null;
-    	waitingReceivers.wake();
-    	waitingSenders.wake();
->>>>>>> fa09f4f4d9a7e7978e219332f6ce429bb4a809af
     	lock.release();
     }
 
@@ -87,7 +80,7 @@ public class Communicator {
     	waitingSenders.wake();
     	waitingReceivers.wake();
 
-    	result = value;
+    	int result = value;
     	liveReceiver = null;
     	lock.release();
     	
