@@ -58,8 +58,10 @@ public class Communicator {
     		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
+    	
     	liveReceiver = null;
-    	waitingLiveReceiver.wake();
+    	waitingReceivers.wake();
+    	waitingSenders.wake()
     	lock.release();
     }
 
@@ -75,15 +77,17 @@ public class Communicator {
     		waitingReceivers.sleep();
     	}
     	liveReceiver = KThread.currentThread();
-    	while(liveSender == null) {
+    	while(liveSender == null){
     		waitingSenders.wake();
-    		waitingLiveReceiver.sleep();
+    		waitingReceivers.sleep();
     	}
+    		
     	waitingSenders.wake();
     	waitingReceivers.wake();
-    	liveSender = null;
+
     	int result = value;
     	lock.release();
+    	liveSender = null;
     	return result;
     }
 }
