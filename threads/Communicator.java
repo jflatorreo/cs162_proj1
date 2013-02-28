@@ -49,12 +49,13 @@ public class Communicator {
     	//While another thread has loaded his parameter and
     	//is waiting for a receiver to return it then
     	//put this sender on the waitQueue
+    	while (liveSender != null) waitingSenders.sleep();
     	value = word;
     	liveSender = KThread.currentThread();
     	
     	while(liveReceiver == null || isArrived == false) {
-    		waitingReceivers.wake();
-    		waitingSenders.sleep();
+    		waitingLiveReceiver.wake();
+    		waitingLiveSender.sleep();
     	}
     	/** There is no thread waiting to send this value
     	 *  to a receiver and so this thread loads its value 
@@ -68,8 +69,9 @@ public class Communicator {
     	liveReceiver = null;
     	liveSender = null;
     	isArrived = false;
-    	//waitingLiveSender.wake();
-    	//waitingLiveReceiver.wake();
+    	
+    	waitingLiveSender.wake();
+    	waitingLiveReceiver.wake();
     	
     	lock.release();
     }
@@ -83,16 +85,19 @@ public class Communicator {
     public int listen() {
     	lock.acquire();
     	
+    	while(liveReceiver != null) waitingReceivers.sleep();
+    	
     	liveReceiver = KThread.currentThread();
     	while(liveSender == null) {
     		//waitingSenders.wake();
-    		waitingReceivers.sleep();
+    		waitingLiveReceiver.sleep();
     	}
     	
-    	waitingSenders.wake();
+    	waitingLiveSender.wake();
 
     	isArrived = true;
     	int result = value;
+    	
     	lock.release();
     	
     	return result;
