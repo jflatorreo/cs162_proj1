@@ -26,7 +26,6 @@ public class Communicator {
     	waitingSenders = new Condition2(lock);
     	waitingLiveReceiver = new Condition2(lock);
     	liveReceiver = null;
-    	liveSender = null;
     	value = 0;
     }
 
@@ -45,23 +44,21 @@ public class Communicator {
     	//While another thread has loaded his parameter and
     	//is waiting for a receiver to return it then
     	//put this sender on the waitQueue
-    	while(liveSender != null) {
+    	while(liveReceiver == null) {
     		waitingSenders.sleep();
     	}
     	/** There is no thread waiting to send this value
     	 *  to a receiver and so this thread loads its value 
     	 *  and becomes the next thread to send */
-    	liveSender = KThread.currentThread();
-    	value = word;
-    	
+    	/*
     	while(liveReceiver == null) {
     		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
+    	*/
+    	value = word;
     	
-    	liveReceiver = null;
-    	waitingReceivers.wake();
-    	waitingSenders.wake()
+    	waitingLiveReceiver.wake();
     	lock.release();
     }
 
@@ -77,17 +74,17 @@ public class Communicator {
     		waitingReceivers.sleep();
     	}
     	liveReceiver = KThread.currentThread();
-    	while(liveSender == null){
-    		waitingSenders.wake();
-    		waitingReceivers.sleep();
-    	}
+    	
+    	waitingSenders.wake();
+    	waitingLiveReceiver.sleep();
     		
     	waitingSenders.wake();
     	waitingReceivers.wake();
 
-    	int result = value;
+    	result = value;
+    	liveReceiver = null;
     	lock.release();
-    	liveSender = null;
+    	
     	return result;
     }
 }
