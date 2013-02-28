@@ -44,6 +44,7 @@ public class Communicator {
     	//is waiting for a receiver to return it then
     	//put this sender on the waitQueue
     	while(liveReceiver == null) {
+    		waitingReceivers.wake();
     		waitingSenders.sleep();
     	}
     	/** There is no thread waiting to send this value
