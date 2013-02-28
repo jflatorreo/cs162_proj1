@@ -48,14 +48,6 @@ public class Boat {
 		adultInMolokai = 0;
 		
 		//Start Threads
-		for (int i=0; i<adults; i++){
-			//Start Adults Threads here
-			KThread adultThread = new KThread(new Runnable() {
-				public void run () {AdultItinerary();}
-			});
-			adultThread.setName("ADULT " + i+1);
-			adultThread.fork();
-		}
 		for (int i=0; i<children; i++){
 			//Start Children Threads here
 			KThread childThread = new KThread(new Runnable() {
@@ -63,6 +55,14 @@ public class Boat {
 			});
 			childThread.setName("CHILD " + i+1);
 			childThread.fork();
+		}
+		for (int i=0; i<adults; i++){
+			//Start Adults Threads here
+			KThread adultThread = new KThread(new Runnable() {
+				public void run () {AdultItinerary();}
+			});
+			adultThread.setName("ADULT " + i+1);
+			adultThread.fork();
 		}
 		
 		while (true) {
@@ -90,18 +90,13 @@ public class Boat {
 		// do things later
 		while (true) {
 			if (inOahu && boatInOahu && childInOahu < 2 && !pilotIsChild){
-				//System.out.println("ADULT if #1");
 				adultInOahu--;
 				bg.AdultRowToMolokai();
 				boatInOahu = !boatInOahu;
 				inOahu = !inOahu;
 				adultInMolokai++;
 				
-				waitingOnMolokai.wake();
-				waitingOnMolokai.sleep();
-			}
-			else if (!inOahu && !boatInOahu && childInMolokai == 0) {
-				//System.out.println("ADULT if #2");
+				if(childInMolokai == 0) {
 					adultInMolokai--;
 					bg.AdultRowToOahu();
 					boatInOahu = !boatInOahu;
@@ -109,10 +104,12 @@ public class Boat {
 					adultInOahu++;
 					waitingOnOahu.wake();
 					waitingOnOahu.sleep();
-					//System.out.println("ADULT WOKE UP from loc 2 ");
+				} else {
+					waitingOnMolokai.wake();
+					waitingOnMolokai.sleep();
+				}
 			}
 			else {
-				//System.out.println("ADULT if #3");
 				if (inOahu) {
 					waitingOnOahu.wake();
 					waitingOnOahu.sleep();
@@ -144,7 +141,6 @@ public class Boat {
 					
 					//If we can load a passenger, do not move boat yet, and try to load child
 					if (childInOahu != 0) {
-						//System.out.println("Child 1 calling another child to pick up the boat");
 						waitingOnOahu.wake();
 					}
 					//Else do the trip and search for next to go back. This is done so that is we have only a child Thread active we dont infinite loop
@@ -153,9 +149,7 @@ public class Boat {
 						pilotIsChild = false;
 						waitingOnMolokai.wake();
 					}
-					//System.out.println("Child1 is sleeping");
 					waitingOnMolokai.sleep();
-					//System.out.println("CHILD1 IS WOKE UP");
 				}
 				else {
 					pilotIsChild = false;
@@ -168,19 +162,14 @@ public class Boat {
 					childInMolokai++;
 					
 					if (childInOahu_past == 0 && adultInOahu_past == 0) {
-						///System.out.println("true");
 						notifyToBegin.speak(1);
 					}
 					else { 
-						//System.out.println("false");
 						waitingOnMolokai.wake();
 					}
-					//System.out.println("Makeing ME SLEEP");
 					waitingOnMolokai.sleep();
-					//System.out.println("Waking up from sleep");
 				}
 			} else if (inOahu && boatInOahu && childInOahu == 1 && adultInOahu == 0) {
-				//System.out.println("2nd if CHILD going to molokai");
 				pilotIsChild = false;
 				childInOahu--;
 				bg.ChildRowToMolokai();
@@ -192,7 +181,6 @@ public class Boat {
 				waitingOnMolokai.sleep();
 			}
 			else if (!inOahu && !boatInOahu) {
-				//System.out.println("go to oahuuuuuuuu");
 				childInMolokai--;
 				bg.ChildRowToOahu();
 				boatInOahu = !boatInOahu;
