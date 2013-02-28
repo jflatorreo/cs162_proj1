@@ -20,35 +20,30 @@ else:
 */
 public class Boat {
 	//Fields
-    static BoatGrader bg;
-    static Lock boatLock;
-    static Condition waitingOnOahu;
-    static Condition waitingOnMolokai;
-	private static boolean pilot;
-	private static boolean pilotIsChild;
-	private static boolean passenger;
+	static BoatGrader bg;
+	static Lock boatLock;
+	static Condition waitingOnOahu;
+	static Condition waitingOnMolokai;
 	private static boolean boatInOahu;
+	private static boolean pilotIsChild;
 	private static int childInOahu;
 	private static int childInMolokai;
 	private static int adultInOahu;
 	private static int adultInMolokai;
-	private static int numChildLeftOahu;
 
 	//Action Methods
-    public static void begin( int adults, int children, BoatGrader b ) {
-    	// Instantiate global variables here
+	public static void begin( int adults, int children, BoatGrader b ) {
+		// Instantiate global variables here
 		bg = b;
 		boatLock = new Lock();
 		waitingOnOahu = new Condition(boatLock);
 		waitingOnMolokai = new Condition(boatLock);
-		pilot = false;
-		passenger = false;
 		boatInOahu = true;
+		pilotIsChild = false;
 		childInOahu = 0;
 		childInMolokai = 0;
 		adultInOahu = 0;
 		adultInMolokai = 0;
-		numChildLeftOahu = 0;
 		
 		//Start Threads
 		for (int i=0; i<children; i++){
@@ -69,7 +64,6 @@ public class Boat {
 		}
 		
 		while (true) {
-			//System.out.println("@@@@@@@ childInMolokai : " + childInMolokai + " , adultInMolokai : " + adultInMolokai);
 			boatLock.acquire();
 			if (childInMolokai == children && adultInMolokai == adults) {
 				break;
@@ -82,10 +76,9 @@ public class Boat {
 			boatLock.release();
 		}
 		boatLock.release();
-		System.out.println("We are done!");
-    }
+	}
 
-    static void AdultItinerary() {
+	static void AdultItinerary() {
 		boatLock.acquire();
 		adultInOahu++;
 		boolean inOahu = true;
@@ -114,49 +107,48 @@ public class Boat {
 			}
 				
 		}
-    }
+	}
 
-    static void ChildItinerary() {
-    	boatLock.acquire();
-    	childInOahu++;
-    	boolean inOahu = true;
-    	waitingOnOahu.sleep();
-    	// What I remember the number of children/adults when I left Oahu
-    	while (true) {
-    		if (inOahu && boatInOahu && ((childInOahu > 1 && !pilotIsChild) || pilotIsChild ) ) {
-    			//Get pilot or passenger if 2 childs or more in Oahu
-    			if (pilotIsChild == false) {
-    				pilotIsChild = true;
-    				childInOahu--;
-    				bg.ChildRowToMolokai();
-    				inOahu = !inOahu;
-    				childInMolokai++;
-    				
-    				//If we can load a passenger, do not move boat yet, and try to load child
-    				if (childInOahu != 0) {
-    					waitingOnOahu.wake();
-    				}
-    				//Else do the trip and search for next to go back. This is done so that is we have only a child Thread active we dont infinite loop
-    				else {
-    					boatInOahu = !boatInOahu;
-    					pilotIsChild = false;
-    					waitingOnMolokai.wake();
-    				}
-    				waitingOnMolokai.sleep();
-    			}
-    			else {
-    				pilotIsChild = false;
-    				childInOahu--;
-    				bg.ChildRideToMolokai();
-    				inOahu = !inOahu;
-    				boatInOahu = !boatInOahu;
-    				childInMolokai++;
-    				
-    				// need communicator to check if it is done.
-    				waitingOnMolokai.wake();
-    				waitingOnMolokai.sleep();
-    			}
-    		} else if (inOahu && boatInOahu && childInOahu == 1 && adultInOahu == 0) {
+	static void ChildItinerary() {
+		boatLock.acquire();
+		childInOahu++;
+		boolean inOahu = true;
+		waitingOnOahu.sleep();
+		
+		while (true) {
+			if (inOahu && boatInOahu && ((childInOahu > 1 && !pilotIsChild) || pilotIsChild ) ) {
+				//Get pilot or passenger if 2 childs or more in Oahu
+				if (pilotIsChild == false) {
+					pilotIsChild = true;
+					childInOahu--;
+					bg.ChildRowToMolokai();
+					inOahu = !inOahu;
+					childInMolokai++;
+					
+					//If we can load a passenger, do not move boat yet, and try to load child
+					if (childInOahu != 0) {
+						waitingOnOahu.wake();
+					}
+					//Else do the trip and search for next to go back. This is done so that is we have only a child Thread active we dont infinite loop
+					else {
+						boatInOahu = !boatInOahu;
+						pilotIsChild = false;
+						waitingOnMolokai.wake();
+					}
+					waitingOnMolokai.sleep();
+				}
+				else {
+					pilotIsChild = false;
+					childInOahu--;
+					bg.ChildRideToMolokai();
+					inOahu = !inOahu;
+					boatInOahu = !boatInOahu;
+					childInMolokai++;
+					
+					waitingOnMolokai.wake();
+					waitingOnMolokai.sleep();
+				}
+			} else if (inOahu && boatInOahu && childInOahu == 1 && adultInOahu == 0) {
 				childInOahu--;
 				bg.ChildRowToMolokai();
 				inOahu = !inOahu;
@@ -164,17 +156,17 @@ public class Boat {
 				
 				boatLock.release();
 				break;
-    		}
-    		else if (!inOahu && !boatInOahu) {
-    			childInMolokai--;
-    			bg.ChildRowToOahu();
-    			boatInOahu = !boatInOahu;
-    			inOahu = !inOahu;
-    			childInOahu++;
-    			waitingOnOahu.wake();
-    			waitingOnOahu.sleep();
-    		}
-    		else {
+			}
+			else if (!inOahu && !boatInOahu) {
+				childInMolokai--;
+				bg.ChildRowToOahu();
+				boatInOahu = !boatInOahu;
+				inOahu = !inOahu;
+				childInOahu++;
+				waitingOnOahu.wake();
+				waitingOnOahu.sleep();
+			}
+			else {
 				if (inOahu) {
 					waitingOnOahu.wake();
 					waitingOnOahu.sleep();
@@ -184,10 +176,10 @@ public class Boat {
 					waitingOnMolokai.sleep();
 				}
 			}
-    	}
-    }
+		}
+	}
 
-    static void SampleItinerary() {
+	static void SampleItinerary() {
 		// Please note that this isn't a valid solution (you can't fit
 		// all of them on the boat). Please also note that you may not
 		// have a single thread calculate a solution and then just play
@@ -197,7 +189,7 @@ public class Boat {
 		bg.ChildRideToMolokai();
 		bg.AdultRideToMolokai();
 		bg.ChildRideToMolokai();
-    }
+	}
 	
 	public static void selfTest() {
 		/*
@@ -217,5 +209,5 @@ public class Boat {
 		System.out.println("\n ***Testing Boats with 100 children, 100 adults***");
 		//begin(100, 100, b);
 		*/
-    }
+	}
 }
