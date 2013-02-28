@@ -58,7 +58,13 @@ public class Communicator {
     	*/
     	value = word;
     	
+<<<<<<< HEAD
     	waitingLiveReceiver.wake();
+=======
+    	liveReceiver = null;
+    	waitingReceivers.wake();
+    	waitingSenders.wake();
+>>>>>>> fa09f4f4d9a7e7978e219332f6ce429bb4a809af
     	lock.release();
     }
 
