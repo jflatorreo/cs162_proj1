@@ -31,14 +31,13 @@ public class Alarm {
 
     long currentTime = Machine.timer().getTime();
     
-    TimeWaitingKThread current =  waitingThreads.peek();
     boolean intStatus = Machine.interrupt().disable();
     
+    TimeWaitingKThread current =  waitingThreads.peek();
     System.out.println("interrupt " + currentTime);
     while((current!=null)&&(current.getWakeTime()<currentTime)){
         current = waitingThreads.poll();
         current.wake();
-        Machine.interrupt().restore(intStatus);
         current = waitingThreads.peek();
     }
 
@@ -99,7 +98,7 @@ public class Alarm {
         
         public void run() {
                 System.out.println("*** thread " + which + " begins wait");
-                ThreadedKernel.alarm.waitUntil(((int) (which*500))+500);
+                ThreadedKernel.alarm.waitUntil(((int) (which*500)+370));
                 System.out.println("*** thread " + which + " awakes");
         }
     }
