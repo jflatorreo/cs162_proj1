@@ -61,7 +61,7 @@ public class Communicator {
     	
     	liveReceiver = null;
     	waitingReceivers.wake();
-    	waitingSenders.wake()
+    	waitingSenders.wake();
     	lock.release();
     }
 
