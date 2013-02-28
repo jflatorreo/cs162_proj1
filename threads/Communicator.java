@@ -60,7 +60,6 @@ public class Communicator {
     	}
     	liveReceiver = null;
     	waitingLiveReceiver.wake();
-    	waitingSenders.wake();
     	lock.release();
     }
 
@@ -80,7 +79,7 @@ public class Communicator {
     		waitingSenders.wake();
     		waitingLiveReceiver.sleep();
     	}
-    	waitingSenders.wakeAll();
+    	waitingSenders.wake();
     	waitingReceivers.wake();
     	liveSender = null;
     	int result = value;
