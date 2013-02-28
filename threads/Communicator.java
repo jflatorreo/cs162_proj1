@@ -70,8 +70,8 @@ public class Communicator {
     	liveSender = null;
     	isArrived = false;
     	
-    	waitingLiveSender.wake();
-    	waitingLiveReceiver.wake();
+    	waitingSenders.wake();
+    	waitingReceivers.wake();
     	
     	lock.release();
     }
