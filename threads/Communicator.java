@@ -48,9 +48,9 @@ public class Communicator {
     	while(liveSender != null) {
     		waitingSenders.sleep();
     	}
-    	//There is no thread waiting to send this value
-    	//to a receiver and so this thread loads its value
-    	//and becomes the nest thread to send
+    	/** There is no thread waiting to send this value
+    	 *  to a receiver and so this thread loads its value 
+    	 *  and becomes the nest thread to send */
     	liveSender = KThread.currentThread();
     	value = word;
     	
@@ -71,25 +71,18 @@ public class Communicator {
      */    
     public int listen() {
     	lock.acquire();
-    	
     	while(liveReceiver != null){
     		waitingReceivers.sleep();
     	}
-    	
     	liveReceiver = KThread.currentThread();
-    	
     	while(liveSender == null){
-    		waitingSenders.wake();
+    		waitingSenders.wakeAll();
     		waitingLiveReceiver.sleep();
     	}
-    	
     	waitingSenders.wake();
-    	waitingReceivers.wake();
-    	
     	liveReceiver = null;
     	int result = value;
     	lock.release();
-    	
     	return result;
     }
 }
