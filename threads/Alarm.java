@@ -34,7 +34,7 @@ public class Alarm {
     boolean intStatus = Machine.interrupt().disable();
     
     TimeWaitingKThread current =  waitingThreads.peek();
-    System.out.println("interrupt " + currentTime);
+
     while((current!=null)&&(current.getWakeTime()<currentTime)){
         current = waitingThreads.poll();
         current.wake();
