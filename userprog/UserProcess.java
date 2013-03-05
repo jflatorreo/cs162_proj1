@@ -5,6 +5,8 @@ import nachos.threads.*;
 import nachos.userprog.*;
 
 import java.io.EOFException;
+import java.util.HashMap;
+import java.util.LinkedList;
 
 /**
  * Encapsulates the state of a user process that is not contained in its
@@ -27,6 +29,10 @@ public class UserProcess {
 		pageTable = new TranslationEntry[numPhysPages];
 		for (int i=0; i<numPhysPages; i++)
 			pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
+		
+		// initialize openFiles
+		processOfOpenFiles = new HashMap<Integer, OpenFile>();
+		numberOfOpenFiles = 0;
 	}
 	
 	/**
@@ -342,49 +348,128 @@ public class UserProcess {
 		return 0;
 	}
 
-	private int handleExit() {
-		//Machine.exit();
-		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
-		return 0;
-	}
-
-	private int handleCreate(int a0, int a1, int a2, int a3) {
+	private int handleCreate(int a0) {
 		// todo : create handleCreate stuff
+		int fileDescriptor = -1;
+		boolean linkedFlag = true;
+		String filename = readVirtualMemoryString(a0, 256);
 		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
-		return 0;
+		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true);
+		
+		// if the file cannot be opened,	
+		if (openfile == null) return fileDescriptor;
+		
+		fileStructure filestructure = hashOfFileStructure.get(openfile.getName());
+		if (filestructure != null) {
+			if (!filestructure.isLinked) linkedFlag = false;
+			else {
+				OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum);
+				if (myOpenFile != null) {
+						fileDescriptor = filestructure.fileDescriptorNum;
+				}
+				
+				// if not in my arrayOfOpenedFileDescriptors,
+				if (fileDescriptor == -1) {
+					if (numberOfOpenFiles < maxNumberOfOpenFiles) {
+						processOfOpenFiles.put(new Integer(filestructure.counter), filestructure.openfile);
+						filestructure.counter++;
+						numberOfOpenFiles++;
+						fileDescriptor = filestructure.fileDescriptorNum;
+					}
+				}
+			}
+		}
+
+		// fileDescriptor still not found, and it is not marked as unlinked,
+		if (fileDescriptor == -1 && linkedFlag && numberOfOpenFiles < maxNumberOfOpenFiles) {
+			hashOfFileStructure.put(openfile.getName(), new fileStructure(openfile, ++fileDescriptorNum));
+			processOfOpenFiles.put(new Integer(fileDescriptorNum), openfile);
+			numberOfOpenFiles++;
+			fileDescriptor = fileDescriptorNum;
+		}
+		
+		return fileDescriptor;
 	}
 
-	private int handleOpen() {
+	private int handleOpen(int a0) {
 		// todo : create handleOpen stuff
+		int fileDescriptor = -1;
+		String filename = readVirtualMemoryString(a0, 256);
 		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
-		return 0;
+		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true);
+		
+		// if the file cannot be opened,	
+		if (openfile == null) return fileDescriptor;
+		
+		fileStructure filestructure = hashOfFileStructure.get(openfile.getName());
+		if (filestructure != null && !filestructure.isLinked) {
+			OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum);
+			if (myOpenFile != null) {
+					fileDescriptor = filestructure.fileDescriptorNum;
+			}
+			
+			// if not in my arrayOfOpenedFileDescriptors,
+			if (fileDescriptor == -1) {
+				if (numberOfOpenFiles < maxNumberOfOpenFiles) {
+					processOfOpenFiles.put(new Integer(filestructure.counter), filestructure.openfile);
+					filestructure.counter++;
+					numberOfOpenFiles++;
+					fileDescriptor = filestructure.fileDescriptorNum;
+				}
+			}
+		}
+		
+		return fileDescriptor;
 	}
 
-	private int handleRead() {
+	// a0 : fileDescriptor
+	// a1 : buffer
+	// a2 : count
+	private int handleRead(int a0, int a1, int a2) {
 		// todo : create handleRead stuff
+		OpenFile myDescriptor = processOfOpenFiles.get(a0);
+		if (myDescriptor == null || a2 < 0) return -1;
 		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
-		return 0;
+		// if it is mine to open, and have valid parameters,
+		byte[] myBuffer = new byte[a2];
+		int bytesRead = myDescriptor.read(myBuffer, 0, a2);
+		
+		if (bytesRead < 0) return -1;
+		
+		return writeVirtualMemory(a1, myBuffer);
 	}
 
-	private int handleWrite() {
+	// a0 : fileDescriptor
+	// a1 : buffer
+	// a2 : count
+	private int handleWrite(int a0, int a1, int a2) {
 		// todo : create handleWrite stuff
+		OpenFile myDescriptor = processOfOpenFiles.get(a0);
+		if (myDescriptor == null || a2 < 0) return -1;
 		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
-		return 0;
+		// if it is mine to write, and have valid parameters,
+		byte[] myBuffer = new byte[a2];
+		int bytesRead = readVirtualMemory(a1, myBuffer, 0, a2);
+		
+		if (bytesRead < 0 || bytesRead != a2) return -1;
+		
+		int bytesWrite = myDescriptor.write(myBuffer, 0, a2);
+		
+		if (bytesWrite != a2) return -1;
+		
+		myDescriptor.seek(bytesWrite);
+		
+		return bytesWrite;
 	}
 
-	private int handleClose() {
+	private int handleClose(int a0) {
 		// todo : create handleClose stuff
 		
 		Lib.assertNotReached("Machine.halt() did not halt machine!");
 		return 0;
 	}
 
-	private int handleUnlink() {
+	private int handleUnlink(int a1) {
 		// todo : create handleUnlink stuff
 		
 		Lib.assertNotReached("Machine.halt() did not halt machine!");
@@ -437,7 +522,17 @@ public class UserProcess {
 			case syscallHalt:
 				return handleHalt();
 			case syscallCreate:
-				return handleCreate(a0, a1, a2, a3);
+				return handleCreate(a0);
+			case syscallOpen:
+				return handleOpen(a0);
+			case syscallRead:
+				return handleRead(a0, a1, a2);
+			case syscallWrite:
+				return handleWrite(a0, a1, a2);
+			case syscallClose:
+				return handleClose(a0);
+			case syscallUnlink:
+				return handleUnlink(a0);
 
 			default:
 				Lib.debug(dbgProcess, "Unknown syscall " + syscall);
@@ -474,6 +569,34 @@ public class UserProcess {
 				Lib.assertNotReached("Unexpected exception");
 		}
 	}
+	
+	static class fileStructure {
+		public OpenFile openfile;
+		public boolean isLinked;
+		public int counter;
+		public int fileDescriptorNum;
+		
+		fileStructure() {
+			this.openfile = null;
+			this.isLinked = true;
+			this.counter = 0;
+			this.fileDescriptorNum = -1;
+		}
+		
+		fileStructure(OpenFile openfile, int fileDescriptorNum) {
+			this.openfile = openfile;
+			this.isLinked = true;
+			this.counter = 1;
+			this.fileDescriptorNum = fileDescriptorNum;
+		}
+	}
+	
+	// array of filedescriptors (max 16)
+	static int fileDescriptorNum = 2;
+	static HashMap<String, fileStructure> hashOfFileStructure = new HashMap<String, fileStructure>();
+	protected HashMap<Integer, OpenFile> processOfOpenFiles;
+	protected int numberOfOpenFiles;
+	protected final int maxNumberOfOpenFiles = 16;
 
 	/** The program being run by this process. */
 	protected Coff coff;
