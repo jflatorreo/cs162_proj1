@@ -347,7 +347,7 @@ public class UserProcess {
 		Lib.assertNotReached("Machine.halt() did not halt machine!");
 		return 0;
 	}
-
+    /*
 	private int handleCreate(int a0) {
 		// todo : create handleCreate stuff
 		int fileDescriptor = -1;
@@ -359,16 +359,15 @@ public class UserProcess {
 		// if the file cannot be opened,	
 		if (openfile == null) return fileDescriptor;
 		
-		fileStructure filestructure = hashOfFileStructure.get(openfile.getName());
-		if (filestructure != null) {
-			if (!filestructure.isLinked) linkedFlag = false;
-			else {
-				OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum);
+		FileStructure filestructure = hashOfFileStructure.get(openfile.getName());
+		if (filestructure != null) { //filestructure is in FileStructure hash
+			if (!filestructure.isLinked) linkedFlag = false; //if openfile is not linked, you don't do anything with thesaf openFile
+			else { //if openfile is linked
+				OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum); //find the OpenFile with OpenFile hash
 				if (myOpenFile != null) {
 						fileDescriptor = filestructure.fileDescriptorNum;
 				}
 				
-				// if not in my arrayOfOpenedFileDescriptors,
 				if (fileDescriptor == -1) {
 					if (numberOfOpenFiles < maxNumberOfOpenFiles) {
 						processOfOpenFiles.put(new Integer(filestructure.counter), filestructure.openfile);
@@ -382,7 +381,44 @@ public class UserProcess {
 
 		// fileDescriptor still not found, and it is not marked as unlinked,
 		if (fileDescriptor == -1 && linkedFlag && numberOfOpenFiles < maxNumberOfOpenFiles) {
-			hashOfFileStructure.put(openfile.getName(), new fileStructure(openfile, ++fileDescriptorNum));
+			hashOfFileStructure.put(openfile.getName(), new FileStructure(openfile, ++fileDescriptorNum));
+			processOfOpenFiles.put(new Integer(fileDescriptorNum), openfile);
+			numberOfOpenFiles++;
+			fileDescriptor = fileDescriptorNum;
+		}
+		
+		return fileDescriptor;
+	}
+    */
+	private int handleCreate(int a0) {
+		int fileDescriptor = -1;
+		String filename = readVirtualMemoryString(a0, 256);
+		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true); //if there is no such OpenFile with the filename, create one (true)
+		
+		if (openfile == null) //There is no such OpenFile with filename and also cannot create OpenFile with the filename
+            return fileDescriptor;
+		
+		FileStructure fileStructure = hashOfFileStructure.get(openfile.getName());
+
+		if (fileStructure != null) { //FileStructure is in FileStructure hash
+			if (fileStructure.isLinked == false) //FileStructure is not linked -> you don't do anything
+                return fileDescriptor;
+			else { //FileStructure is linked
+				OpenFile myOpenFile = processOfOpenFiles.get(fileStructure.fileDescriptorNum); //find the OpenFile in OpenFile hash of this UserProcess
+				if (myOpenFile != null) //OpenFile found in hash, which means this UserProcess already has this OpenFile
+						fileDescriptor = fileStructure.fileDescriptorNum;
+				else { //OpenFile not found in hash, which means other UserProcess opened the file and this UserProcess is trying to open the file too
+					if (numberOfOpenFiles < maxNumberOfOpenFiles) { //if number of files this UserProcess opened is less than max
+						processOfOpenFiles.put(new Integer(fileStructure.counter), fileStructure.openfile); //add to OpenFile hash
+						fileStructure.counter++;
+						numberOfOpenFiles++;
+						fileDescriptor = fileStructure.fileDescriptorNum;
+					}
+				}
+			}
+		}
+        else if (numberOfOpenFiles < maxNumberOfOpenFiles) { //FileStructure not found and num of open files is less than max
+			hashOfFileStructure.put(openfile.getName(), new FileStructure(openfile, ++fileDescriptorNum));
 			processOfOpenFiles.put(new Integer(fileDescriptorNum), openfile);
 			numberOfOpenFiles++;
 			fileDescriptor = fileDescriptorNum;
@@ -401,7 +437,7 @@ public class UserProcess {
 		// if the file cannot be opened,	
 		if (openfile == null) return fileDescriptor;
 		
-		fileStructure filestructure = hashOfFileStructure.get(openfile.getName());
+		FileStructure filestructure = hashOfFileStructure.get(openfile.getName());
 		if (filestructure != null && !filestructure.isLinked) {
 			OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum);
 			if (myOpenFile != null) {
@@ -570,20 +606,20 @@ public class UserProcess {
 		}
 	}
 	
-	static class fileStructure {
+	static class FileStructure {
 		public OpenFile openfile;
 		public boolean isLinked;
 		public int counter;
 		public int fileDescriptorNum;
 		
-		fileStructure() {
+		FileStructure() {
 			this.openfile = null;
 			this.isLinked = true;
 			this.counter = 0;
 			this.fileDescriptorNum = -1;
 		}
 		
-		fileStructure(OpenFile openfile, int fileDescriptorNum) {
+		FileStructure(OpenFile openfile, int fileDescriptorNum) {
 			this.openfile = openfile;
 			this.isLinked = true;
 			this.counter = 1;
@@ -593,7 +629,7 @@ public class UserProcess {
 	
 	// array of filedescriptors (max 16)
 	static int fileDescriptorNum = 2;
-	static HashMap<String, fileStructure> hashOfFileStructure = new HashMap<String, fileStructure>();
+	static HashMap<String, FileStructure> hashOfFileStructure = new HashMap<String, FileStructure>();
 	protected HashMap<Integer, OpenFile> processOfOpenFiles;
 	protected int numberOfOpenFiles;
 	protected final int maxNumberOfOpenFiles = 16;

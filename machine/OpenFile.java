@@ -16,8 +16,8 @@ public class OpenFile {
      * @param	name		the name of the file, on that file system.
      */
     public OpenFile(FileSystem fileSystem, String name) {
-	this.fileSystem = fileSystem;
-	this.name = name;
+        this.fileSystem = fileSystem;
+        this.name = name;
     }
 
     /**
@@ -25,7 +25,7 @@ public class OpenFile {
      * file system.
      */
     public OpenFile() {
-	this(null, "unnamed");
+        this(null, "unnamed");
     }
 
     /**
@@ -34,7 +34,7 @@ public class OpenFile {
      * @return	the file system to which this file belongs.
      */
     public FileSystem getFileSystem() {
-	return fileSystem;
+        return fileSystem;
     }
     
     /**
@@ -43,7 +43,7 @@ public class OpenFile {
      * @return	the name of this open file.
      */
     public String getName() {
-	return name;
+        return name;
     }
     
     /**
@@ -58,7 +58,7 @@ public class OpenFile {
      * @return	the actual number of bytes successfully read, or -1 on failure.
      */    
     public int read(int pos, byte[] buf, int offset, int length) {
-	return -1;
+        return -1;
     }
     
     /**
@@ -74,7 +74,7 @@ public class OpenFile {
      *		failure.
      */    
     public int write(int pos, byte[] buf, int offset, int length) {
-	return -1;
+        return -1;
     }
 
     /**
@@ -83,7 +83,7 @@ public class OpenFile {
      * @return	the length of this file, or -1 if this file has no length.
      */
     public int length() {
-	return -1;
+        return -1;
     }
 
     /**
@@ -103,7 +103,7 @@ public class OpenFile {
      * pointer.
      */
     public int tell() {
-	return -1;
+        return -1;
     }
 
     /**
@@ -117,7 +117,7 @@ public class OpenFile {
      * @return	the actual number of bytes successfully read, or -1 on failure.
      */    
     public int read(byte[] buf, int offset, int length) {
-	return -1;
+        return -1;
     }
 
     /**
@@ -133,7 +133,7 @@ public class OpenFile {
      *		failure.
      */    
     public int write(byte[] buf, int offset, int length) {
-	return -1;
+        return -1;
     }
 
     private FileSystem fileSystem;
