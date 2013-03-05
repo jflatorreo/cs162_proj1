@@ -89,10 +89,12 @@ public final class Processor {
         Instruction inst = new Instruction();
         
         while (true) {
-            try
+            try {
                 inst.run();
-            catch (MipsException e)
+            }
+            catch (MipsException e) {
                 e.handle();
+            }
             privilege.interrupt.tick(false);
         }
     }
@@ -828,8 +830,9 @@ public final class Processor {
                         if (registers[regLo]*src2 + registers[regHi] != src1)
                         throw new ArithmeticException();
                     }
-                    catch (ArithmeticException e)
+                    catch (ArithmeticException e) {
                         throw new MipsException(exceptionOverflow);
+                    }
                     break;
 
                 case Mips.SLL:

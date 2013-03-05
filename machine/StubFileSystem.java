@@ -29,10 +29,12 @@ public class StubFileSystem implements FileSystem {
         if (!checkName(name))
             return null;
         delay();
-        try
+        try {
             return new StubOpenFile(name, truncate);
-        catch (IOException e)
+        }
+        catch (IOException e) {
             return null;
+        }
     }
     
     public boolean remove(String name) {
@@ -105,8 +107,9 @@ public class StubFileSystem implements FileSystem {
                 file.seek(pos);
                 return Math.max(0, file.read(buf, offset, length));
             }
-            catch (IOException e)
+            catch (IOException e) {
                 return -1;
+            }
         }
 	
         public int write(int pos, byte[] buf, int offset, int length) {
@@ -119,15 +122,18 @@ public class StubFileSystem implements FileSystem {
                 file.write(buf, offset, length);
                 return length;
             }
-            catch (IOException e)
+            catch (IOException e) {
                 return -1;
+            }
         }
 
         public int length() {
-            try
+            try {
                 return (int) file.length();
-            catch (IOException e)
+            }
+            catch (IOException e) {
                 return -1;
+            }
         }
 
         public void close() {
@@ -136,8 +142,9 @@ public class StubFileSystem implements FileSystem {
                 openCount--;
             }
             
-            try
+            try {
                 file.close();
+            }
             catch (IOException e) {
             }
         }
