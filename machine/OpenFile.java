@@ -1,13 +1,17 @@
 // PART OF THE MACHINE SIMULATION. DO NOT CHANGE.
 
 package nachos.machine;
-
 import java.io.EOFException;
 
 /**
  * A file that supports reading, writing, and seeking.
  */
 public class OpenFile {
+	//Fields
+	private FileSystem fileSystem;
+    private String name;
+    
+    //Constructor
     /**
      * Allocate a new <tt>OpenFile</tt> object with the specified name on the
      * specified file system.
@@ -19,7 +23,8 @@ public class OpenFile {
         this.fileSystem = fileSystem;
         this.name = name;
     }
-
+    
+    //Action Methods
     /**
      * Allocate a new unnamed <tt>OpenFile</tt> that is not associated with any
      * file system.
@@ -135,7 +140,4 @@ public class OpenFile {
     public int write(byte[] buf, int offset, int length) {
         return -1;
     }
-
-    private FileSystem fileSystem;
-    private String name;
 }

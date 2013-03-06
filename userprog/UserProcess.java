@@ -21,20 +21,48 @@ import java.util.LinkedList;
  * @see	nachos.network.NetProcess
  */
 public class UserProcess {
-	/**
-	 * Allocate a new process.
-	 */
+	//Fields
+	/** The program being run by this process. */
+	protected Coff coff;
+	/** This process's page table. */
+	protected TranslationEntry[] pageTable;
+	/** The number of contiguous pages occupied by the program. */
+	protected int numPages;
+	/** The number of pages in the program's stack. */
+	protected final int stackPages = 8;
+	private int initialPC, initialSP;
+	private int argc, argv;
+	private static final int pageSize = Processor.pageSize;
+	private static final char dbgProcess = 'a';
+	
+	//New Static Fields
+	private static int processCounter = 0;
+	private static final int MAX_SIZE = 16; //the max number of files that one UserProcess can open
+	private static OpenFile stdin = UserKernel.console.openForReading();
+	private static OpenFile stdout = UserKernel.console.openForWriting();
+	//New Fields
+	private int processID;
+	private OpenFile[] openFileList;
+	private int numOpenFiles;
+	
+
+		
+	//Constructor
 	public UserProcess() {
 		int numPhysPages = Machine.processor().getNumPhysPages();
 		pageTable = new TranslationEntry[numPhysPages];
 		for (int i=0; i<numPhysPages; i++)
 			pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
 		
-		// initialize openFiles
-		processOfOpenFiles = new HashMap<Integer, OpenFile>();
-		numberOfOpenFiles = 0;
+		//Initialize new fields
+		processID = processCounter++;
+		openFileList = new OpenFile[MAX_SIZE];
+		openFileList[0] = stdin;
+		openFileList[1] = stdout;
+		numOpenFiles = 2;
 	}
 	
+	//Action Methods
 	/**
 	 * Allocate and return a new process of the correct class. The class name
 	 * is specified by the <tt>nachos.conf</tt> key
@@ -339,176 +367,225 @@ public class UserProcess {
 	}
 
 	/**
-	 * Handle the halt() system call. 
+	 * Halt the Nachos machine by calling Machine.halt(). Only the root process
+	 * (the first process, executed by UserKernel.run()) should be allowed to
+	 * execute this syscall. Any other process should ignore the syscall and return
+	 * immediately.
 	 */
 	private int handleHalt() {
+		if (this.processID != 0) //this UserProcess is not root
+			return 0;
+		
 		Machine.halt();
 		
 		Lib.assertNotReached("Machine.halt() did not halt machine!");
 		return 0;
 	}
-    /*
+	
+	/**
+	 * Attempt to open the named disk file, creating it if it does not exist,
+	 * and return a file descriptor that can be used to access the file.
+	 * Note that creat() can only be used to create files on disk; creat() will
+	 * never return a file descriptor referring to a stream.
+	 * 
+	 * @param a0 name
+	 * @return Returns the new file descriptor, or -1 if an error occurred.
+	 */
 	private int handleCreate(int a0) {
-		// todo : create handleCreate stuff
-		int fileDescriptor = -1;
-		boolean linkedFlag = true;
+		if (a0 < 0)
+			return -1;
+		
 		String filename = readVirtualMemoryString(a0, 256);
+		if (filename == null) //invalid filename (no null terminator was found)
+			return -1;
 		
 		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true);
+		if (openfile == null) //cannot create file with the filename
+			return -1;
 		
-		// if the file cannot be opened,	
-		if (openfile == null) return fileDescriptor;
-		
-		FileStructure filestructure = hashOfFileStructure.get(openfile.getName());
-		if (filestructure != null) { //filestructure is in FileStructure hash
-			if (!filestructure.isLinked) linkedFlag = false; //if openfile is not linked, you don't do anything with thesaf openFile
-			else { //if openfile is linked
-				OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum); //find the OpenFile with OpenFile hash
-				if (myOpenFile != null) {
-						fileDescriptor = filestructure.fileDescriptorNum;
-				}
-				
-				if (fileDescriptor == -1) {
-					if (numberOfOpenFiles < maxNumberOfOpenFiles) {
-						processOfOpenFiles.put(new Integer(filestructure.counter), filestructure.openfile);
-						filestructure.counter++;
-						numberOfOpenFiles++;
-						fileDescriptor = filestructure.fileDescriptorNum;
-					}
-				}
-			}
-		}
-
-		// fileDescriptor still not found, and it is not marked as unlinked,
-		if (fileDescriptor == -1 && linkedFlag && numberOfOpenFiles < maxNumberOfOpenFiles) {
-			hashOfFileStructure.put(openfile.getName(), new FileStructure(openfile, ++fileDescriptorNum));
-			processOfOpenFiles.put(new Integer(fileDescriptorNum), openfile);
-			numberOfOpenFiles++;
-			fileDescriptor = fileDescriptorNum;
-		}
-		
-		return fileDescriptor;
-	}
-    */
-	private int handleCreate(int a0) {
 		int fileDescriptor = -1;
-		String filename = readVirtualMemoryString(a0, 256);
-		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true); //if there is no such OpenFile with the filename, create one (true)
-		
-		if (openfile == null) //There is no such OpenFile with filename and also cannot create OpenFile with the filename
-            return fileDescriptor;
-		
-		FileStructure fileStructure = hashOfFileStructure.get(openfile.getName());
-
-		if (fileStructure != null) { //FileStructure is in FileStructure hash
-			if (fileStructure.isLinked == false) //FileStructure is not linked -> you don't do anything
-                return fileDescriptor;
-			else { //FileStructure is linked
-				OpenFile myOpenFile = processOfOpenFiles.get(fileStructure.fileDescriptorNum); //find the OpenFile in OpenFile hash of this UserProcess
-				if (myOpenFile != null) //OpenFile found in hash, which means this UserProcess already has this OpenFile
-						fileDescriptor = fileStructure.fileDescriptorNum;
-				else { //OpenFile not found in hash, which means other UserProcess opened the file and this UserProcess is trying to open the file too
-					if (numberOfOpenFiles < maxNumberOfOpenFiles) { //if number of files this UserProcess opened is less than max
-						processOfOpenFiles.put(new Integer(fileStructure.counter), fileStructure.openfile); //add to OpenFile hash
-						fileStructure.counter++;
-						numberOfOpenFiles++;
-						fileDescriptor = fileStructure.fileDescriptorNum;
-					}
+		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
+			return -1;
+		else {
+			for (int i=2; i<MAX_SIZE; i++) {
+				if (openFileList[i] == null) {
+					openFileList[i] = openfile;
+					fileDescriptor = i;
+					break;
 				}
 			}
+			return fileDescriptor;
 		}
-        else if (numberOfOpenFiles < maxNumberOfOpenFiles) { //FileStructure not found and num of open files is less than max
-			hashOfFileStructure.put(openfile.getName(), new FileStructure(openfile, ++fileDescriptorNum));
-			processOfOpenFiles.put(new Integer(fileDescriptorNum), openfile);
-			numberOfOpenFiles++;
-			fileDescriptor = fileDescriptorNum;
-		}
-		
-		return fileDescriptor;
 	}
 
+	/**
+	 * Attempt to open the named file and return a file descriptor.
+	 * Note that open() can only be used to open files on disk; open() will never
+	 * return a file descriptor referring to a stream.
+	 * 
+	 * @param a0 name
+	 * @return Returns the new file descriptor, or -1 if an error occurred.
+	 */
 	private int handleOpen(int a0) {
-		// todo : create handleOpen stuff
-		int fileDescriptor = -1;
+		if (a0 < 0)
+			return -1;
+		
 		String filename = readVirtualMemoryString(a0, 256);
+		if (filename == null) //invalid filename (no null terminator was found)
+			return -1;
 		
 		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true);
+		if (openfile == null) //cannot create file with the filename
+			return -1;
 		
-		// if the file cannot be opened,	
-		if (openfile == null) return fileDescriptor;
-		
-		FileStructure filestructure = hashOfFileStructure.get(openfile.getName());
-		if (filestructure != null && !filestructure.isLinked) {
-			OpenFile myOpenFile = processOfOpenFiles.get(filestructure.fileDescriptorNum);
-			if (myOpenFile != null) {
-					fileDescriptor = filestructure.fileDescriptorNum;
-			}
-			
-			// if not in my arrayOfOpenedFileDescriptors,
-			if (fileDescriptor == -1) {
-				if (numberOfOpenFiles < maxNumberOfOpenFiles) {
-					processOfOpenFiles.put(new Integer(filestructure.counter), filestructure.openfile);
-					filestructure.counter++;
-					numberOfOpenFiles++;
-					fileDescriptor = filestructure.fileDescriptorNum;
+		int fileDescriptor = -1;
+		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
+			return -1;
+		else {
+			for (int i=2; i<MAX_SIZE; i++) {
+				if (openFileList[i] == null) {
+					openFileList[i] = openfile;
+					fileDescriptor = i;
+					numOpenFiles++;
+					break;
 				}
 			}
+			return fileDescriptor;
 		}
-		
-		return fileDescriptor;
 	}
 
-	// a0 : fileDescriptor
-	// a1 : buffer
-	// a2 : count
+
+	/**
+	 * Attempt to read up to count bytes into buffer from the file or stream
+	 * referred to by fileDescriptor.
+	 * On success, the number of bytes read is returned. If the file descriptor
+	 * refers to a file on disk, the file position is advanced by this number.
+	 * It is not necessarily an error if this number is smaller than the number of
+	 * bytes requested. If the file descriptor refers to a file on disk, this
+	 * indicates that the end of the file has been reached. If the file descriptor
+	 * refers to a stream, this indicates that the fewer bytes are actually
+	 * available right now than were requested, but more bytes may become available
+	 * in the future. Note that read() never waits for a stream to have more data;
+	 * it always returns as much as possible immediately.
+	 * On error, -1 is returned, and the new file position is undefined. This can
+	 * happen if fileDescriptor is invalid, if part of the buffer is read-only or
+	 * invalid, or if a network stream has been terminated by the remote host and
+	 * no more data is available.
+	 * 
+	 * @param a0 fileDescriptor
+	 * @param a1 buffer
+	 * @param a2 count
+	 * @return number of bytes written to virtual memory
+	 */
 	private int handleRead(int a0, int a1, int a2) {
-		// todo : create handleRead stuff
-		OpenFile myDescriptor = processOfOpenFiles.get(a0);
-		if (myDescriptor == null || a2 < 0) return -1;
+		if (a0 < 0 || a0 > 15 || a1 < 0 || a2 < 0) //fileDescriptor out of range or invalid buffer addr or invalid count
+			return -1;
 		
-		// if it is mine to open, and have valid parameters,
-		byte[] myBuffer = new byte[a2];
-		int bytesRead = myDescriptor.read(myBuffer, 0, a2);
+		OpenFile openfile = openFileList[a0];
+		if (openfile == null) //no such file exists in openFileList
+			return -1;
 		
-		if (bytesRead < 0) return -1;
+		byte[] tempBuffer = new byte[a2];
+		int bytesRead = openfile.read(tempBuffer, 0, a2);
+		if (bytesRead == -1) //openfile.read returned error
+			return -1;
 		
-		return writeVirtualMemory(a1, myBuffer);
+		return writeVirtualMemory(a1, tempBuffer);
 	}
 
-	// a0 : fileDescriptor
-	// a1 : buffer
-	// a2 : count
+	/**
+	 * Attempt to write up to count bytes from buffer to the file or stream
+	 * referred to by fileDescriptor. write() can return before the bytes are
+	 * actually flushed to the file or stream. A write to a stream can block,
+	 * however, if kernel queues are temporarily full.
+	 * 
+	 * On success, the number of bytes written is returned (zero indicates nothing
+	 * was written), and the file position is advanced by this number. It IS an
+	 * error if this number is smaller than the number of bytes requested. For
+	 * disk files, this indicates that the disk is full. For streams, this
+	 * indicates the stream was terminated by the remote host before all the data
+	 * was transferred.
+	 *
+	 * On error, -1 is returned, and the new file position is undefined. This can
+	 * happen if fileDescriptor is invalid, if part of the buffer is invalid, or
+	 * if a network stream has already been terminated by the remote host.
+	 * 
+	 * @param a0 fileDescriptor
+	 * @param a1 buffer
+	 * @param a2 count
+	 * @return number of bytes written to the OpenFile
+	 */
 	private int handleWrite(int a0, int a1, int a2) {
-		// todo : create handleWrite stuff
-		OpenFile myDescriptor = processOfOpenFiles.get(a0);
-		if (myDescriptor == null || a2 < 0) return -1;
+		if (a0 < 0 || a0 > 15 || a1 < 0 || a2 < 0) //fileDescriptor out of range or invalid buffer addr or invalid count
+			return -1;
 		
-		// if it is mine to write, and have valid parameters,
-		byte[] myBuffer = new byte[a2];
-		int bytesRead = readVirtualMemory(a1, myBuffer, 0, a2);
+		OpenFile openfile = openFileList[a0];
+		if (openfile == null) //no such file exists in openFileList
+			return -1;
 		
-		if (bytesRead < 0 || bytesRead != a2) return -1;
+		byte[] tempBuffer = new byte[a2];
+		int bytesRead = readVirtualMemory(a1, tempBuffer, 0, a2);
+		if (bytesRead != a2) //bytesRead not equal to count(a2)
+			return -1;
 		
-		int bytesWrite = myDescriptor.write(myBuffer, 0, a2);
-		
-		if (bytesWrite != a2) return -1;
-		
-		myDescriptor.seek(bytesWrite);
+		int bytesWrite = openfile.write(tempBuffer, 0, a2);
+		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error or size not equal to count(a2)
+			return -1;
 		
 		return bytesWrite;
 	}
 
+	/**
+	 * Close a file descriptor, so that it no longer refers to any file or stream
+	 * and may be reused.
+	 * If the file descriptor refers to a file, all data written to it by write()
+	 * will be flushed to disk before close() returns.
+	 * If the file descriptor refers to a stream, all data written to it by write()
+	 * will eventually be flushed (unless the stream is terminated remotely), but
+	 * not necessarily before close() returns.
+	 * The resources associated with the file descriptor are released. If the
+	 * descriptor is the last reference to a disk file which has been removed using
+	 * unlink, the file is deleted (this detail is handled by the file system
+	 * implementation).
+	 * 
+	 * @param a0 fileDescriptor
+	 * @return Returns 0 on success, or -1 if an error occurred.
+	 */
 	private int handleClose(int a0) {
-		// todo : create handleClose stuff
+		if (a0 < 0 || a0 > 15) //fileDescriptor out of range
+			return -1;
 		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
+		if (openFileList[a0] == null) //no such file exists in openFileList
+			return -1;
+		
+		openFileList[a0].close();
+		openFileList[a0] = null;
 		return 0;
 	}
 
-	private int handleUnlink(int a1) {
-		// todo : create handleUnlink stuff
+	/**
+	 * Delete a file from the file system. If no processes have the file open, the
+	 * file is deleted immediately and the space it was using is made available for
+	 * reuse.
+	 * If any processes still have the file open, the file will remain in existence
+	 * until the last file descriptor referring to it is closed. However, creat()
+	 * and open() will not be able to return new file descriptors for the file
+	 * until it is deleted.
+	 * 
+	 * @param a0 name
+	 * @return Returns 0 on success, or -1 if an error occurred.
+	 */
+	private int handleUnlink(int a0) {
+		if (a0 < 0)
+			return -1;
 		
-		Lib.assertNotReached("Machine.halt() did not halt machine!");
+		String filename = readVirtualMemoryString(a0,256);
+		if (filename == null) //invalid filename (no null terminator was found)
+			return -1;
+		
+		boolean result = ThreadedKernel.fileSystem.remove(filename);
+		if (result == false) //invalid filename(a0) or FileRemover returned false
+			return -1;
 		return 0;
 	}
 
@@ -605,49 +682,4 @@ public class UserProcess {
 				Lib.assertNotReached("Unexpected exception");
 		}
 	}
-	
-	static class FileStructure {
-		public OpenFile openfile;
-		public boolean isLinked;
-		public int counter;
-		public int fileDescriptorNum;
-		
-		FileStructure() {
-			this.openfile = null;
-			this.isLinked = true;
-			this.counter = 0;
-			this.fileDescriptorNum = -1;
-		}
-		
-		FileStructure(OpenFile openfile, int fileDescriptorNum) {
-			this.openfile = openfile;
-			this.isLinked = true;
-			this.counter = 1;
-			this.fileDescriptorNum = fileDescriptorNum;
-		}
-	}
-	
-	// array of filedescriptors (max 16)
-	static int fileDescriptorNum = 2;
-	static HashMap<String, FileStructure> hashOfFileStructure = new HashMap<String, FileStructure>();
-	protected HashMap<Integer, OpenFile> processOfOpenFiles;
-	protected int numberOfOpenFiles;
-	protected final int maxNumberOfOpenFiles = 16;
-
-	/** The program being run by this process. */
-	protected Coff coff;
-
-	/** This process's page table. */
-	protected TranslationEntry[] pageTable;
-	/** The number of contiguous pages occupied by the program. */
-	protected int numPages;
-
-	/** The number of pages in the program's stack. */
-	protected final int stackPages = 8;
-	
-	private int initialPC, initialSP;
-	private int argc, argv;
-	
-	private static final int pageSize = Processor.pageSize;
-	private static final char dbgProcess = 'a';
 }
