@@ -44,9 +44,8 @@ public class UserProcess {
 	private int processID;
 	private OpenFile[] openFileList;
 	private int numOpenFiles;
-	
 
-		
+
 	//Constructor
 	public UserProcess() {
 		int numPhysPages = Machine.processor().getNumPhysPages();
@@ -395,13 +394,11 @@ public class UserProcess {
 		if (a0 < 0)
 			return -1;
 		
-		String filename = readVirtualMemoryString(a0, 256);
+		String filename = readVirtualMemoryString(a0, 256); //a0: vaddr, 256: maxLength, returns String(buffer, 0, length)
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
-		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true);
-		if (openfile == null) //cannot create file with the filename
-			return -1;
+		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true); //try to open file with the filename, if no such file then create one with length 0
 		
 		int fileDescriptor = -1;
 		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
@@ -435,8 +432,8 @@ public class UserProcess {
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
-		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true);
-		if (openfile == null) //cannot create file with the filename
+		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, false);
+		if (openfile == null) //cannot open the file with filename
 			return -1;
 		
 		int fileDescriptor = -1;
@@ -487,11 +484,11 @@ public class UserProcess {
 			return -1;
 		
 		byte[] tempBuffer = new byte[a2];
-		int bytesRead = openfile.read(tempBuffer, 0, a2);
+		int bytesRead = openfile.read(tempBuffer, 0, a2); //read openfile from offset 0 to length a2, and save into tempBuffer
 		if (bytesRead == -1) //openfile.read returned error
 			return -1;
 		
-		return writeVirtualMemory(a1, tempBuffer);
+		return writeVirtualMemory(a1, tempBuffer); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
 	}
 
 	/**
@@ -585,8 +582,8 @@ public class UserProcess {
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
-		boolean result = ThreadedKernel.fileSystem.remove(filename);
-		if (result == false) //invalid filename(a0) or FileRemover returned false
+		boolean deleted = ThreadedKernel.fileSystem.remove(filename);
+		if (deleted == false) //invalid filename(a0) or FileRemover returned false
 			return -1;
 		return 0;
 	}

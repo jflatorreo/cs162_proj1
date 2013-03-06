@@ -68,6 +68,7 @@ public class StubFileSystem implements FileSystem {
     }
 
     private class StubOpenFile extends OpenFileWithPosition {
+        //Constructor
         StubOpenFile(final String name, final boolean truncate) throws IOException {
             super(StubFileSystem.this, name);
             final File f = new File(directory, name);
