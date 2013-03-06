@@ -411,6 +411,7 @@ public class UserProcess {
 				if (openFileList[i] == null) {
 					openFileList[i] = openfile;
 					fileDescriptor = i;
+					numOpenFiles++;
 					break;
 				}
 			}
@@ -560,6 +561,7 @@ public class UserProcess {
 		
 		openFileList[a0].close();
 		openFileList[a0] = null;
+		numOpenFiles--;
 		return 0;
 	}
 
