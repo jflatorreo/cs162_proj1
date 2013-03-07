@@ -39,15 +39,18 @@ public class UserProcess {
 	//Part I - static
 	private static int processCounter = 0;
 	private static final int MAX_SIZE = 16; //the max number of files that one UserProcess can open
-	private static OpenFile stdin = UserKernel.console.openForReading();
-	private static OpenFile stdout = UserKernel.console.openForWriting();
     // Part I - nonstatic
 	private int processID;
 	private OpenFile[] openFileList;
 	private int numOpenFiles;
+    //Part III - static
+    private static Lock lock = new Lock();
+    private static int numUserProcesses = 0;
     //Part III - nonstatic
     private UserProcess parent;
     private HashMap<Integer, UserProcess> children;
+    private int exitStatus;
+    private UThread thread;
 
 
 	//Constructor
@@ -61,12 +64,15 @@ public class UserProcess {
         //Part I
 		processID = processCounter++;
 		openFileList = new OpenFile[MAX_SIZE];
-		openFileList[0] = stdin;
-		openFileList[1] = stdout;
+        openFileList[0] = UserKernel.console.openForReading();
+        openFileList[1] = UserKernel.console.openForWriting();
 		numOpenFiles = 2;
         //Part III
         parent = null;
         children = new HashMap<Integer, UserProcess>();
+        exitStatus = Integer.MIN_VALUE;
+        thread = null;
+        numUserProcesses++;
 	}
 	
 	//Action Methods
@@ -590,6 +596,14 @@ public class UserProcess {
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
+        for (int i=0; i<MAX_SIZE; i++) {
+            if (openFileList[i].name == filename) {
+                openFileList[i].close();
+                openFileList[i] = null;
+                numOpenFiles--;
+            }
+        }
+
 		boolean deleted = ThreadedKernel.fileSystem.remove(filename);
 		if (deleted == false) //invalid filename(a0) or FileRemover returned false
 			return -1;
@@ -611,7 +625,24 @@ public class UserProcess {
      * @return None
      */
     private void handleExit(int a0) {
-        return;
+        lock.acquire(); //critical section start
+        Iterator childrenIterator = new Iterator<UserProcess>(children);
+
+        while (childrenIterator.hasNext()) {
+            UserProcess child = childrenIterator.next();
+            child.parent = null;
+        }
+        children.clear();
+        if (parent != null) {
+            parent.children.remove(prcessID);
+            parent.exitStatus = a0;
+        }
+        lock.release(); //critical section end
+
+        unloadSection();
+        if (numUserProcesses == 1) //only one UserProcess left -> terminate kernel
+            Kernel.kernel.terminate();
+        numUserProcesses--;
     }
 
     /**
@@ -639,7 +670,36 @@ public class UserProcess {
      * @param a2 argv (char *argv[])
      */
     private int handleExec(int a0, int a1, int a2) {
+        if (a0 < 0 || a1 < 0)
+            return -1;
 
+        String filename = readVirtualMemoryString(a0, 256);
+        if (filename == null) //invalid filename (no null terminator was found)
+            return -1;
+
+        String[] arguments = new String[a1]; //array of String argument
+        byte[] buffer;
+        int bytesRead;
+        int argumentAddress;
+        for (int i=0; i<a1; i++) {
+            buffer = new byte[4];
+            bytesRead = readVirtualMemory(a2, buffer, 4*i, 4);
+            if (bytesRead != 4) //bytesRead not equal to the size of char*
+                return -1;
+            argumentAddress = Lib.bytesToInt(buffer, 0);
+            arguments[i] = readVirtualMemoryString(argumentAddress, 256);
+            if (argument[i] == null) //invalid file(argument) name
+                return -1;
+        }
+
+        UserProcess child = newUserProcess();
+        child.parent = this;
+        parent.children.put(child.processID, child);
+        
+        boolean result = child.execute(filename, arguments);
+        if (result == false) //execute fail
+            return -1;
+        return child.processID;
     }
 
     /**
@@ -671,6 +731,16 @@ public class UserProcess {
         child.thread.join();
         this.children.remove(a0);
         child.parent = null;
+        
+        int status = child.exitStatus;
+        if (status == Integer.MIN_VALUE) //unhandled exception
+            return 0;
+
+        byte[] buffer = Lib.bytesFromInt(status);
+        int bytesWrite = writeVitualMemory(a1, buffer, 0, buffer.length);
+        if (bytesWrite == -1) //unhandled exception
+            return 0;
+        return 1; //normal child exit
     }
 
 	private static final int
