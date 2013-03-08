@@ -2,11 +2,10 @@ package nachos.userprog;
 
 import nachos.machine.*;
 import nachos.threads.*;
-import nachos.userprog.*;
 
 import java.io.EOFException;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 
 /**
  * Encapsulates the state of a user process that is not contained in its
@@ -99,7 +98,8 @@ public class UserProcess {
 		if (!load(name, args))
 			return false;
 		
-		new UThread(this).setName(name).fork();
+		thread = new UThread(this);
+		thread.setName(name).fork();
 
 		return true;
 	}
@@ -597,7 +597,7 @@ public class UserProcess {
 			return -1;
 		
         for (int i=0; i<MAX_SIZE; i++) {
-            if (openFileList[i].name == filename) {
+            if (openFileList[i].getName() == filename) {
                 openFileList[i].close();
                 openFileList[i] = null;
                 numOpenFiles--;
@@ -626,20 +626,21 @@ public class UserProcess {
      */
     private void handleExit(int a0) {
         lock.acquire(); //critical section start
-        Iterator childrenIterator = new Iterator<UserProcess>(children);
+        Iterator<Integer> childrenIterator = children.keySet().iterator();
 
         while (childrenIterator.hasNext()) {
-            UserProcess child = childrenIterator.next();
-            child.parent = null;
+            UserProcess child = children.get((Integer)childrenIterator.next());
+            if(child != null)
+            	child.parent = null;
         }
         children.clear();
         if (parent != null) {
-            parent.children.remove(prcessID);
+            parent.children.remove(processID);
             parent.exitStatus = a0;
         }
         lock.release(); //critical section end
 
-        unloadSection();
+        unloadSections();
         if (numUserProcesses == 1) //only one UserProcess left -> terminate kernel
             Kernel.kernel.terminate();
         numUserProcesses--;
@@ -688,7 +689,7 @@ public class UserProcess {
                 return -1;
             argumentAddress = Lib.bytesToInt(buffer, 0);
             arguments[i] = readVirtualMemoryString(argumentAddress, 256);
-            if (argument[i] == null) //invalid file(argument) name
+            if (arguments[i] == null) //invalid file(argument) name
                 return -1;
         }
 
@@ -737,7 +738,7 @@ public class UserProcess {
             return 0;
 
         byte[] buffer = Lib.bytesFromInt(status);
-        int bytesWrite = writeVitualMemory(a1, buffer, 0, buffer.length);
+        int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
         if (bytesWrite == -1) //unhandled exception
             return 0;
         return 1; //normal child exit
@@ -788,7 +789,8 @@ public class UserProcess {
 			case syscallHalt:
 				return handleHalt();
             case syscallExit:
-                return handleExit(a0);
+                handleExit(a0);
+				break;
             case syscallExec:
                 return handleExec(a0, a1, a2);
             case syscallJoin:

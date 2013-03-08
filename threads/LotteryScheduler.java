@@ -2,6 +2,7 @@ package nachos.threads;
 
 import nachos.machine.*;
 
+import java.util.Random;
 import java.util.TreeSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,36 +49,37 @@ public class LotteryScheduler extends PriorityScheduler {
         return new LotteryQueue(transferPriority);
     }
     
-    protected LotteryQueue extends PriorityQueue {
+    protected class LotteryQueue extends PriorityQueue {
     //In terms of picking the next thread linear in the number of threads on the queue is fine
         LotteryQueue(boolean transferPriority) {
             super(transferPriority);
         }
         
         public void updateEntry(ThreadState ts, int newEffectivePriority) {
-            this.ticketCount -= ts.effectivePriority;
-            this.ticketCount += newEffectivePriority;
-            super(ts, newEffectivePriority);
+            ticketCount -= ts.effectivePriority;
+            ticketCount += newEffectivePriority;
+            super.updateEntry(ts, newEffectivePriority);
+            
 		}
         
         //DONE!!!!!
         protected ThreadState pickNextThread() {
             //Set up an Iterator and go through it
             Random randomGenerator = new Random();
-            int count = tickets;
-            int num = randomGenerator.nextInt(tickets);
-            Iterator itr = this.waitQueue.iterator();
+            int num = randomGenerator.nextInt(ticketCount);
+            Iterator<ThreadState> itr = this.waitQueue.iterator();
+            ThreadState temp;
             while(itr.hasNext()) {
                 temp = itr.next();
-                count -= temp.effectivePriority;
-                if(count <= 0){
+                num -= temp.effectivePriority;
+                if(num <= 0){
                     return temp;
                 }
             }
             return null;
         }
     }
-    protected LotteryThreadState extends ThreadState {
+    protected class LotteryThreadState extends ThreadState {
         public LotteryThreadState(KThread thread) {
             super(thread);
         }
