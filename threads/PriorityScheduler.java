@@ -101,7 +101,7 @@ public class PriorityScheduler extends Scheduler {
 			ts.effectivePriority = newEffectivePriority;
 			this.waitQueue.add(ts);
 		}
-		
+		//Need to create lottery style
 		protected ThreadState pickNextThread() {
 			assert (false);
 			if (this.waitQueue.isEmpty())
@@ -146,8 +146,8 @@ public class PriorityScheduler extends Scheduler {
 		protected KThread thread;
 		protected int priority;
 		public int effectivePriority;
-		public ArrayList<PriorityQueue> pqHave;
-		public PriorityQueue pqWant;
+		public ArrayList<PriorityQueue> pqHave; //List of resources it has
+		public PriorityQueue pqWant;   //The next resource it wants
 		public int time;
 		
 		
@@ -168,7 +168,7 @@ public class PriorityScheduler extends Scheduler {
 		public int getEffectivePriority() {
 			return this.effectivePriority;
 		}
-		
+		//No need to change
 		public void setPriority(int newPriority) {
 			if (pqWant != null) {
 				pqWant.updateEntry(this, newPriority);
@@ -306,7 +306,8 @@ public class PriorityScheduler extends Scheduler {
 			
       //Adjust the state of pq
 			pq.waitQueue.remove(this);
-			pq.holder = this;	
+			pq.holder = this;
+            this.updateEffectivePriority(); //prev - this one
 		}	
   }
 }
