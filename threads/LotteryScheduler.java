@@ -36,7 +36,12 @@ public class LotteryScheduler extends PriorityScheduler {
      */
     public LotteryScheduler() {
     }
-    
+    //DONE!!!!
+    protected ThreadState getThreadState(KThread thread) {
+		if (thread.schedulingState == null)
+			thread.schedulingState = new LotteryThreadState(thread);
+		return (ThreadState) thread.schedulingState;
+    }
     /**
      * Allocate a new lottery thread queue.
      *
@@ -55,6 +60,7 @@ public class LotteryScheduler extends PriorityScheduler {
             super(transferPriority);
         }
         
+        //DONE!!!!!
         public void updateEntry(ThreadState ts, int newEffectivePriority) {
             ticketCount -= ts.effectivePriority;
             ticketCount += newEffectivePriority;
@@ -83,18 +89,16 @@ public class LotteryScheduler extends PriorityScheduler {
         public LotteryThreadState(KThread thread) {
             super(thread);
         }
-        
-        public void setEffectivePriority(ThreadState donator) {
-            if (this.pqWant != null && this.pqWant.transferPriority != true)
-                return;
-            int newPriority = this.effectivePriority + donator.effectivePriority;
-            if (this.effectivePriority !=  newPriority) {
-                if (pqWant != null) {
-                    pqWant.updateEntry(this, newPriority);
-                    this.pqWant.holder.setEffectivePriority(this);
-                    return;
-                }
-                this.effectivePriority = newPriority;
+        //DONE!!!!
+        public void setPriority(int newPriority) {
+            this.priority = newPriority;
+            this.updateEffectivePriority();
+        }
+        //New method
+        public void propagate(int difference) {
+            if(pqWant.transferPriority == true) {
+                pqWant.updateEntry(pqWant.holder, pqWant.holder.effectivePriority+difference);
+                pqWant.holder.propagate(difference);
             }
         }
         //DONE!!!!
@@ -107,14 +111,21 @@ public class LotteryScheduler extends PriorityScheduler {
             
             //If there is a change in priority, update and propagate to other owners
             if (sumPriority != this.effectivePriority) {
+                int difference;
+                if(this.effectivePriority != null)
+                    difference = sumPriority - this.effectivePriority;
+                else
+                    difference = sumPriority;
                 if(this.pqWant != null) {
                     //Readjust myself in the pq with new priority
                     sumPriority = this.priority + sumPriority;
                     pqWant.updateEntry(this, sumPriority);
                     //this.priority = maxPriority;
                     //Donate my priority to pq owner
-                    if (pqWant.transferPriority == true)
-                        pqWant.holder.setEffectivePriority(this);
+                    if (pqWant.transferPriority == true){
+                        pqWant.updateEntry(pqWant.holder, pqWant.holder.effectivePriority+difference);
+                        pqWant.holder.propagate(difference);
+                    }
                 }
             }
         }
@@ -125,8 +136,10 @@ public class LotteryScheduler extends PriorityScheduler {
 			this.time = TickTimer++;
 			pq.waitQueue.add(this);
 			//Propagate this ThreadState's effectivePriority to holder of pq
-            if (pq.transferPriority == true)
+            if (pq.transferPriority == true) {
                 pq.updateEntry(pq.holder, pq.holder.effectivePriority+this.effectivePriority);
+                pq.holder.propagate(this.effectivePriority);
+            }
 		}
         //Added a line to acquire in PriorityScheduler
         //updateEffectivePriority() at the very end

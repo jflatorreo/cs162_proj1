@@ -307,7 +307,7 @@ public class PriorityScheduler extends Scheduler {
       //Adjust the state of pq
 			pq.waitQueue.remove(this);
 			pq.holder = this;
-            this.updateEffectivePriority(); //prev - this one
+            this.updateEffectivePriority();
 		}	
   }
 }
