@@ -639,10 +639,18 @@ public class UserProcess {
             parent.exitStatus = a0;
         }
         lock.release(); //critical section end
+        
+        // clear my openFiles... (close all openFile I have)
+        for (int i = 0; i < openFileList.length; i++) {
+        	if (openFileList[i] != null)
+        		handleClose(i);
+        }
 
         unloadSections();
         if (numUserProcesses == 1) //only one UserProcess left -> terminate kernel
+        {
             Kernel.kernel.terminate();
+        }
         numUserProcesses--;
     }
 
