@@ -175,18 +175,40 @@ public class UserProcess {
 	 * @return	the number of bytes successfully transferred.
 	 */
 	public int readVirtualMemory(int vaddr, byte[] data, int offset, int length) {
-		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
 
-		byte[] memory = Machine.processor().getMemory();
-		
-		// for now, just assume that virtual addresses equal physical addresses
-		if (vaddr < 0 || vaddr >= memory.length)
-			return 0;
+    byte[] memory = Machine.processor().getMemory();
 
-		int amount = Math.min(length, memory.length-vaddr);
-		System.arraycopy(memory, vaddr, data, offset, amount);
+    //total amount of pages read/written
+    int totalAmount = 0;
 
-		return amount;
+    while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
+        //if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
+        int vpn = vaddr/pageSize;
+        
+        //if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
+        if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
+            return totalAmount;
+        }
+        //sets the page to used and dirty
+        pageTable[vpn].dirty = true;
+        pageTable[vpn].used = true;
+        int ppn = pageTable[vpn].ppn;
+        int byteStart = vaddr%pageSize;
+        
+        //copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
+        int amount = Math.min((vpn+1)*pageSize - vaddr, length);
+
+        int paddr = ppn*pageSize + byteStart;
+
+        //write to the physical page corresponding to the current virtual page
+        System.arraycopy(memory, paddr, data, offset amount);
+        offset += amount;
+        vaddr += amount;
+        length -= amount;
+        totalAmount += amount;
+    }
+
+    return totalAmount;
 	}
 
 	/**
@@ -216,20 +238,44 @@ public class UserProcess {
 	 *			virtual memory.
 	 * @return	the number of bytes successfully transferred.
 	 */
-	public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
-		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
 
-		byte[] memory = Machine.processor().getMemory();
-		
-		// for now, just assume that virtual addresses equal physical addresses
-		if (vaddr < 0 || vaddr >= memory.length)
-			return 0;
+    public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
+    Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
 
-		int amount = Math.min(length, memory.length-vaddr);
-		System.arraycopy(data, offset, memory, vaddr, amount);
+    byte[] memory = Machine.processor().getMemory();
 
-		return amount;
-	}
+    //total amount of pages read/written
+    int totalAmount = 0;
+
+    while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
+        //if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
+        int vpn = vaddr/pageSize;
+        
+        //if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
+        if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
+            return totalAmount;
+        }
+        //sets the page to used and dirty
+        pageTable[vpn].dirty = true;
+        pageTable[vpn].used = true;
+        int ppn = pageTable[vpn].ppn;
+        int byteStart = vaddr%pageSize;
+
+        //copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
+        int amount = Math.min((vpn+1)*pageSize - vaddr, length);
+
+        int paddr = ppn*pageSize + byteStart;
+
+        //write to the physical page corresponding to the current virtual page
+        System.arraycopy(data, offset, memory, paddr, amount);
+        offset += amount;
+        vaddr += amount;
+        length -= amount;
+        totalAmount += amount;
+    }
+
+    return totalAmount;
+    }
 
 	/**
 	 * Load the executable with the specified name into this process, and
@@ -327,34 +373,52 @@ public class UserProcess {
 	 * @return	<tt>true</tt> if the sections were successfully loaded.
 	 */
 	protected boolean loadSections() {
-		if (numPages > Machine.processor().getNumPhysPages()) {
-			coff.close();
-			Lib.debug(dbgProcess, "\tinsufficient physical memory");
-			return false;
-		}
+        UserKernel.pagesLock.acquire();
 
-		// load sections
-		for (int s=0; s<coff.getNumSections(); s++) {
-			CoffSection section = coff.getSection(s);
-			
-			Lib.debug(dbgProcess, "\tinitializing " + section.getName() + " section (" + section.getLength() + " pages)");
+        //if there are not enough free physical pages at the time we return false
+        if(UserKernel.pages.size() < numPages){
+            UserKernel.pagesLock.release();
+            coff.close();
+            return false;
+        }
+        UserKernel.pagesLock.release();
+        
+        //initialize the pageTable
+        pageTable = TranslationEntry[numPages];
+        int additionalPage = 0;
+        //the following is a critical section since we only want to modify the list of free pages one process at a time
+        UserKernel.pagesLock.acquire();
+        for (int s=0; s<coff.getNumSections(); s++) {
+            CoffSection section = coff.getSection(s);
 
-			for (int i=0; i<section.getLength(); i++) {
-				int vpn = section.getFirstVPN()+i;
-
-				// for now, just assume virtual addresses=physical addresses
-				section.loadPage(i, vpn);
-			}
-		}
-		
-		return true;
-	}
+            //for each page in a section we create a new TranslationEntry with the corresponding Physical Page number (retrieved from UserKernel.pages list) and load that section into the physical page
+            for (int i=0; i<section.getLength(); i++) {
+                int vpn = section.getFirstVPN()+i;
+                int ppn = UserKernel.pages.pop().intValue();
+                pageTable[vpn] = new TranslationEntry(vpn, ppn, true, section.isReadOnly(), false, false);
+                section.loadPage(i, ppn);
+                additionalPage++;
+            }
+        }
+        for (int j = additionalPage; j < numPages; j++){
+            pageTable[j] = new TranslationEntry(j, UserKernel.pages.pop().intValue(), true, false, false, false);
+        }
+        UserKernel.pagesLock.release();
+        return true;
+    }
+	
 
 	/**
 	 * Release any resources allocated by <tt>loadSections()</tt>.
 	 */
 	protected void unloadSections() {
-	}	
+	   UserKernel.pagesLock.acquire();
+        for(int i=0; i<pageTable.length; i++){
+            pageTable[i].valid = false;
+            UserKernel.pages.add(new Integer(pageTable[i].ppn));
+        }
+        UserKernel.pagesLock.release();
+    }	
 
 	/**
 	 * Initialize the processor's registers in preparation for running the
