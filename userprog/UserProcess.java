@@ -61,7 +61,9 @@ public class UserProcess {
 		
 		//Initialize new fields
         //Part I
+        lock.acquire();
 		processID = processCounter++;
+        lock.release();
 		openFileList = new OpenFile[MAX_SIZE];
         openFileList[0] = UserKernel.console.openForReading();
         openFileList[1] = UserKernel.console.openForWriting();
@@ -240,41 +242,41 @@ public class UserProcess {
 	 */
 
     public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
-    Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
+        Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
 
-    byte[] memory = Machine.processor().getMemory();
+        byte[] memory = Machine.processor().getMemory();
 
-    //total amount of pages read/written
-    int totalAmount = 0;
+        //total amount of pages read/written
+        int totalAmount = 0;
 
-    while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
-        //if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
-        int vpn = vaddr/pageSize;
-        
-        //if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
-        if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
-            return totalAmount;
+        while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
+            //if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
+            int vpn = vaddr/pageSize;
+            
+            //if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
+            if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
+                return totalAmount;
+            }
+            //sets the page to used and dirty
+            pageTable[vpn].dirty = true;
+            pageTable[vpn].used = true;
+            int ppn = pageTable[vpn].ppn;
+            int byteStart = vaddr%pageSize;
+
+            //copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
+            int amount = Math.min((vpn+1)*pageSize - vaddr, length);
+
+            int paddr = ppn*pageSize + byteStart;
+
+            //write to the physical page corresponding to the current virtual page
+            System.arraycopy(data, offset, memory, paddr, amount);
+            offset += amount;
+            vaddr += amount;
+            length -= amount;
+            totalAmount += amount;
         }
-        //sets the page to used and dirty
-        pageTable[vpn].dirty = true;
-        pageTable[vpn].used = true;
-        int ppn = pageTable[vpn].ppn;
-        int byteStart = vaddr%pageSize;
 
-        //copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
-        int amount = Math.min((vpn+1)*pageSize - vaddr, length);
-
-        int paddr = ppn*pageSize + byteStart;
-
-        //write to the physical page corresponding to the current virtual page
-        System.arraycopy(data, offset, memory, paddr, amount);
-        offset += amount;
-        vaddr += amount;
-        length -= amount;
-        totalAmount += amount;
-    }
-
-    return totalAmount;
+        return totalAmount;
     }
 
 	/**
@@ -465,7 +467,7 @@ public class UserProcess {
 	 * Note that creat() can only be used to create files on disk; creat() will
 	 * never return a file descriptor referring to a stream.
 	 * 
-	 * @param a0 name
+	 * @param a0 fileNameAddress
 	 * @return Returns the new file descriptor, or -1 if an error occurred.
 	 */
 	private int handleCreate(int a0) {
@@ -499,7 +501,7 @@ public class UserProcess {
 	 * Note that open() can only be used to open files on disk; open() will never
 	 * return a file descriptor referring to a stream.
 	 * 
-	 * @param a0 name
+	 * @param a0 fileNameAddress
 	 * @return Returns the new file descriptor, or -1 if an error occurred.
 	 */
 	private int handleOpen(int a0) {

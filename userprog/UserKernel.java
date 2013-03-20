@@ -37,7 +37,7 @@ public class UserKernel extends ThreadedKernel {
 	
     	Machine.processor().setExceptionHandler(new Runnable() {
 			public void run() { exceptionHandler(); }
-			});
+		});
 	}
 
 	/**
@@ -54,8 +54,7 @@ public class UserKernel extends ThreadedKernel {
 		do {
 			c = (char) console.readByte(true);
 			console.writeByte(c);
-		}
-		while (c != 'q');
+		} while (c != 'q');
 	
 		System.out.println("");
 	}
