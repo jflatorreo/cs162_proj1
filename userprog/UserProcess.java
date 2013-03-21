@@ -799,7 +799,7 @@ public class UserProcess {
 	 * @return 1: normal child exit, 0: unhandled exception child exit, -1: processID does not refer to child process
 	 */
 	private int handleJoin(int a0, int a1) {
-		if (a1 < 0)
+		if (a1 < 0) //invalid parent's status address
 			return 0;
 		
 		UserProcess child = this.children.get(a0);
@@ -808,21 +808,14 @@ public class UserProcess {
 		
 		child.thread.join();
 		
-		this.children.remove(a0);
-		child.parent = null;
-		
-		int status = child.exitStatus;
-
-		if (status != 0) //the child process exited normally.
-			return 0;
-		
-		byte[] buffer = Lib.bytesFromInt(status);
+		byte[] buffer = Lib.bytesFromInt(child.exitStatus);
 		int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
-		if (bytesWrite == -1) //unhandled exception
+		if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 			return 0;
 		
-		
-		return 1; //child process exited normally
+		if (child.exitStatus == 0)
+			return 1; //child process exited normally
+		return 0;
 	}
 
 	private static final int
