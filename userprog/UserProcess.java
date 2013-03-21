@@ -689,6 +689,7 @@ public class UserProcess {
 	 * @return None
 	 */
 	private void handleExit(int a0) {
+		/*
 		lock.acquire(); //critical section start
 		for (UserProcess child: children.values()) {
 			if(child != null)
@@ -699,7 +700,7 @@ public class UserProcess {
 			this.parent.children.remove(processID);
 		}
 		lock.release(); //critical section end
-		
+		*/
 		for (int i = 0; i < openFileList.length; i++) { // clear my openFiles... (close all openFile I have)
 			if (openFileList[i] != null)
 				handleClose(i);
