@@ -661,7 +661,7 @@ public class UserProcess {
 			return -1;
 		
 		for (int i=0; i<MAX_SIZE; i++) {
-			if (openFileList[i].getName() == filename) {
+			if (openFileList[i] != null && openFileList[i].getName() == filename) {
 				openFileList[i].close();
 				openFileList[i] = null;
 				numOpenFiles--;
@@ -700,8 +700,8 @@ public class UserProcess {
 		children.clear();
 		if (parent != null) {
 			parent.children.remove(processID);
-			parent.exitStatus = a0;
 		}
+		this.exitStatus = a0;
 		lock.release(); //critical section end
 		
 		// clear my openFiles... (close all openFile I have)
@@ -747,7 +747,7 @@ public class UserProcess {
 			return -1;
 
 		String filename = readVirtualMemoryString(a0, 256);
-		if (filename == null) //invalid filename (no null terminator was found)
+		if (filename == null || !filename.endsWith(".coff")) //invalid filename (no null terminator was found)
 			return -1;
 
 		String[] arguments = new String[a1]; //array of String argument
@@ -768,8 +768,8 @@ public class UserProcess {
 		UserProcess child = newUserProcess();
 		child.parent = this;
 		
-		if (parent != null)
-			parent.children.put(child.processID, child);
+		if (this.parent != null)
+			this.parent.children.put(child.processID, child);
 		
 		boolean result = child.execute(filename, arguments);
 		if (result == false) //execute fail
@@ -799,23 +799,30 @@ public class UserProcess {
 	 * @return 1: normal child exit, 0: unhandled exception child exit, -1: processID does not refer to child process
 	 */
 	private int handleJoin(int a0, int a1) {
+		if (a1 < 0)
+			return 0;
+		
 		UserProcess child = this.children.get(a0);
 		if (child == null) //there is no child process with processID(a0)
 			return -1;
-
+		
 		child.thread.join();
+		
 		this.children.remove(a0);
 		child.parent = null;
 		
 		int status = child.exitStatus;
-		if (status == Integer.MIN_VALUE) //unhandled exception
-			return 0;
 
+		if (status != 0) //the child process exited normally.
+			return 0;
+		
 		byte[] buffer = Lib.bytesFromInt(status);
 		int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
 		if (bytesWrite == -1) //unhandled exception
 			return 0;
-		return 1; //normal child exit
+		
+		
+		return 1; //child process exited normally
 	}
 
 	private static final int
