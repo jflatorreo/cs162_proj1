@@ -695,24 +695,26 @@ public class UserProcess {
 				child.parent = null;
 		}
 		children.clear();
-		if (parent != null) {
-			parent.children.remove(processID);
+		if (this.parent != null) {
+			this.parent.children.remove(processID);
 		}
-		this.exitStatus = a0;
 		lock.release(); //critical section end
 		
-		// clear my openFiles... (close all openFile I have)
-		for (int i = 0; i < openFileList.length; i++) {
+		for (int i = 0; i < openFileList.length; i++) { // clear my openFiles... (close all openFile I have)
 			if (openFileList[i] != null)
 				handleClose(i);
 		}
 
 		unloadSections();
-		if (numUserProcesses == 1) //only one UserProcess left -> terminate kernel
-		{
+		this.exitStatus = a0;
+		
+		lock.acquire();
+		if (numUserProcesses == 1) { //only one UserProcess left -> terminate kernel
 			Kernel.kernel.terminate();
 		}
 		numUserProcesses--;
+		lock.release();
+		UThread.finish();
 	}
 
 	/**
