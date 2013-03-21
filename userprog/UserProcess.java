@@ -710,8 +710,6 @@ public class UserProcess {
 		this.exitStatus = a0;
 		
 		lock.acquire();
-		if (this.parent != null)
-			this.parent.exitStatus = this.exitStatus;
 		if (numUserProcesses == 1) { //only one UserProcess left -> terminate kernel
 			Kernel.kernel.terminate();
 		}
@@ -815,12 +813,15 @@ public class UserProcess {
 			
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
-		}		
-		int myStatus = this.exitStatus;
+		}
 		
+		return 1;
+		/*
+		int myStatus = this.exitStatus;
 		if (myStatus == 0)
 			return 1; //child process exited normally
 		return 0;
+		*/
 	}
 
 	private static final int
