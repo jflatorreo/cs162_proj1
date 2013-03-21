@@ -209,6 +209,10 @@ public class PriorityScheduler extends Scheduler {
 			}
 			*/
 		}
+      //Not used at this level
+      public void propagate(int difference) {
+          //Allows for backward compatibility of new code
+      }
 
 		/*
      * Name: setEffectivePriority
