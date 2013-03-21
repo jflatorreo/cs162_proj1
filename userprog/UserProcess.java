@@ -34,7 +34,7 @@ public class UserProcess {
 	private static final int pageSize = Processor.pageSize;
 	private static final char dbgProcess = 'a';
 	
-	//Fields
+	//New Fields
 	//Part I - static
 	private static int processCounter = 0;
 	private static final int MAX_SIZE = 16; //the max number of files that one UserProcess can open
@@ -49,7 +49,6 @@ public class UserProcess {
 	private HashMap<Integer, UserProcess> children;
 	private int exitStatus;
 	private UThread thread;
-
 
 	//Constructor
 	public UserProcess() {
@@ -505,7 +504,7 @@ public class UserProcess {
 			return -1;
 		
 		int fileDescriptor = -1;
-		for (int i=2; i<MAX_SIZE; i++) { //0 and 1 are reserved for stdin and stdout
+		for (int i=2; i<MAX_SIZE; i++) { //never return a file descriptor referring to a stream
 			if (openFileList[i] == null) {
 				OpenFile openfile = ThreadedKernel.fileSystem.open(filename, false);
 				if (openfile == null)
@@ -520,8 +519,9 @@ public class UserProcess {
 
 
 	/**
-	 * Attempt to read up to count bytes into buffer from the file or stream
-	 * referred to by fileDescriptor.
+	 * Attempt to read up to count bytes from the file or stream referred to by 
+     * fileDescriptor, then write data into this process's virtual memory specified 
+     * by vaddr.
 	 * On success, the number of bytes read is returned. If the file descriptor
 	 * refers to a file on disk, the file position is advanced by this number.
 	 * It is not necessarily an error if this number is smaller than the number of
@@ -561,18 +561,17 @@ public class UserProcess {
 	}
 
 	/**
-	 * Attempt to write up to count bytes from buffer to the file or stream
-	 * referred to by fileDescriptor. write() can return before the bytes are
-	 * actually flushed to the file or stream. A write to a stream can block,
-	 * however, if kernel queues are temporarily full.
-	 * 
+	 * Attempt to write up to count bytes from buffer, which is in this process's
+     * virtual memory specified by vaddr, to the file or stream referred to by 
+     * fileDescriptor. write() can return before the bytes are actually flushed 
+     * to the file or stream. A write to a stream can block, however, if kernel 
+     * queues are temporarily full.
 	 * On success, the number of bytes written is returned (zero indicates nothing
 	 * was written), and the file position is advanced by this number. It IS an
 	 * error if this number is smaller than the number of bytes requested. For
 	 * disk files, this indicates that the disk is full. For streams, this
 	 * indicates the stream was terminated by the remote host before all the data
 	 * was transferred.
-	 *
 	 * On error, -1 is returned, and the new file position is undefined. This can
 	 * happen if fileDescriptor is invalid, if part of the buffer is invalid, or
 	 * if a network stream has already been terminated by the remote host.
@@ -592,9 +591,8 @@ public class UserProcess {
 		
 		byte[] tempBuffer = new byte[a2];
 		int bytesRead = readVirtualMemory(a1, tempBuffer, 0, a2);
-		
 		int bytesWrite = openfile.write(tempBuffer, 0, bytesRead);
-		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error
+		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error or bytesWrite smaller than a2
 			return -1;
 		
 		return bytesWrite;
@@ -641,7 +639,7 @@ public class UserProcess {
 	 * @return Returns 0 on success, or -1 if an error occurred.
 	 */
 	private int handleUnlink(int a0) {
-		if (a0 < 0)
+		if (a0 < 0) //invalid vaddr
 			return -1;
 		
 		String filename = readVirtualMemoryString(a0,256);
@@ -683,11 +681,11 @@ public class UserProcess {
 		}
 		children.clear();
 		if (this.parent != null) {
-			this.parent.children.remove(processID);
+			this.parent.children.remove(this.processID);
 		}
 		lock.release(); //critical section end
 		
-		for (int i = 0; i < openFileList.length; i++) { // clear my openFiles... (close all openFile I have)
+		for (int i = 0; i < openFileList.length; i++) { //close all openfiles that this process have
 			if (openFileList[i] != null)
 				handleClose(i);
 		}
@@ -709,18 +707,14 @@ public class UserProcess {
 	 * arguments, in a new child process. The child process has a new unique
 	 * process ID, and starts with stdin opened as file descriptor 0, and stdout
 	 * opened as file descriptor 1.
-	 *
 	 * file is a null-terminated string that specifies the name of the file
 	 * containing the executable. Note that this string must include the ".coff"
 	 * extension.
-	 *
 	 * argc specifies the number of arguments to pass to the child process. This
 	 * number must be non-negative.
-	 *
 	 * argv is an array of pointers to null-terminated strings that represent the
 	 * arguments to pass to the child process. argv[0] points to the first
 	 * argument, and argv[argc-1] points to the last argument.
-	 *
 	 * exec() returns the child process's process ID, which can be passed to
 	 * join(). On error, returns -1.
 	 *
@@ -736,13 +730,13 @@ public class UserProcess {
 		if (filename == null || !filename.endsWith(".coff")) //invalid filename (no null terminator was found)
 			return -1;
 
-		String[] arguments = new String[argCounter]; //array of String argument
+		String[] arguments = new String[argCounter]; //empty array of String argument
 		byte[] buffer;
 		int bytesRead;
 		int argumentAddress;
 		for (int i=0; i<argCounter; i++) {
 			buffer = new byte[4];
-			bytesRead = readVirtualMemory(argOffset+(i*4), buffer);
+			bytesRead = readVirtualMemory(argOffset, buffer, 4*i, 4);
 			
 			if (bytesRead != 4) //bytesRead not equal to the size of char*
 				return -1;
