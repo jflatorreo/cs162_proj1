@@ -64,7 +64,7 @@ public class LotteryScheduler extends PriorityScheduler {
             //propagate
             int difference = newEffectivePriority-oldPriority;
             if(difference != 0)
-                ((LotteryThreadState)ts).propagate(difference);
+                ts.propagate(difference);
 		}
         
         //DONE!!!!!
@@ -113,7 +113,7 @@ public class LotteryScheduler extends PriorityScheduler {
             int sumPriority = this.priority;
             for (PriorityQueue pq: this.pqHave)
                 if (pq.transferPriority == true) {
-                    Iterator<ThreadState> itr = this.pqWant.waitQueue.iterator();
+                    Iterator<ThreadState> itr = pq.waitQueue.iterator();
                     while(itr.hasNext())
                         sumPriority += itr.next().getEffectivePriority();
                 }
