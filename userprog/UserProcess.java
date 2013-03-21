@@ -690,10 +690,7 @@ public class UserProcess {
 	 */
 	private void handleExit(int a0) {
 		lock.acquire(); //critical section start
-		Iterator<Integer> childrenIterator = children.keySet().iterator();
-
-		while (childrenIterator.hasNext()) {
-			UserProcess child = children.get((Integer)childrenIterator.next());
+		for (UserProcess child: children.values()) {
 			if(child != null)
 				child.parent = null;
 		}
@@ -799,9 +796,6 @@ public class UserProcess {
 	 * @return 1: normal child exit, 0: unhandled exception child exit, -1: processID does not refer to child process
 	 */
 	private int handleJoin(int a0, int a1) {
-		if (a1 < 0) //invalid parent's status address
-			return 0;
-		
 		UserProcess child = this.children.get(a0);
 		if (child == null) //there is no child process with processID(a0)
 			return -1;
