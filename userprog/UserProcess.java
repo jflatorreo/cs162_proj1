@@ -603,7 +603,7 @@ public class UserProcess {
 		int bytesRead = readVirtualMemory(a1, tempBuffer, 0, a2);
 		
 		int bytesWrite = openfile.write(tempBuffer, 0, bytesRead);
-		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error or size not equal to count(a2)
+		if (bytesWrite == -1) //openfile.write returned error or size not equal to count(a2)
 			return -1;
 		
 		return bytesWrite;
@@ -647,7 +647,7 @@ public class UserProcess {
 	 * and open() will not be able to return new file descriptors for the file
 	 * until it is deleted.
 	 * 
-	 * @param a0 name
+	 * @param a0 fileNameAddr
 	 * @return Returns 0 on success, or -1 if an error occurred.
 	 */
 	private int handleUnlink(int a0) {
@@ -659,7 +659,8 @@ public class UserProcess {
 			return -1;
 		
 		for (int i=0; i<MAX_SIZE; i++) {
-			if (openFileList[i] != null && openFileList[i].getName() == filename) {
+			//if (openFileList[i] != null && openFileList[i].getName() == filename) {
+			if (openFileList[i].getName() == filename) {
 				openFileList[i].close();
 				openFileList[i] = null;
 				numOpenFiles--;
@@ -812,9 +813,10 @@ public class UserProcess {
 				return 0;
 		}
 		
-		if (child.exitStatus == 0)
-			return 1; //child process exited normally
-		return 0;
+		return 1;
+		//if (child.exitStatus == 0)
+		//	return 1; //child process exited normally
+		//return 0;
 	}
 
 	private static final int
