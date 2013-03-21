@@ -74,7 +74,7 @@ public class UserProcess {
 		//Part III
 		parent = null;
 		children = new HashMap<Integer, UserProcess>();
-		exitStatus = Integer.MIN_VALUE;
+		exitStatus = 0;
 		thread = null;
 	}
 	
@@ -707,9 +707,11 @@ public class UserProcess {
 		}
 
 		unloadSections();
+		this.exitStatus = a0;
 		
 		lock.acquire();
-		this.exitStatus = a0;
+		if (this.parent != null)
+			this.parent.exitStatus = this.exitStatus;
 		if (numUserProcesses == 1) { //only one UserProcess left -> terminate kernel
 			Kernel.kernel.terminate();
 		}
@@ -813,13 +815,10 @@ public class UserProcess {
 			
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
-		}
+		}		
+		int myStatus = this.exitStatus;
 		
-		lock.acquire();
-		int childStatus = child.exitStatus;
-		lock.release();
-		
-		if (childStatus == 0)
+		if (myStatus == 0)
 			return 1; //child process exited normally
 		return 0;
 	}
