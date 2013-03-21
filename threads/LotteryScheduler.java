@@ -98,7 +98,7 @@ public class LotteryScheduler extends PriorityScheduler {
         public void propagate(int difference) {
             if(pqWant.transferPriority == true) {
                 pqWant.updateEntry(pqWant.holder, pqWant.holder.effectivePriority+difference);
-                pqWant.holder.propagate(difference);
+                ((LotteryThreadState)pqWant.holder).propagate(difference);
             }
         }
         //DONE!!!!
@@ -112,10 +112,13 @@ public class LotteryScheduler extends PriorityScheduler {
             //If there is a change in priority, update and propagate to other owners
             if (sumPriority != this.effectivePriority) {
                 int difference;
+                /*
                 if(this.effectivePriority != null)
                     difference = sumPriority - this.effectivePriority;
                 else
                     difference = sumPriority;
+                */
+                difference = sumPriority - this.effectivePriority;
                 if(this.pqWant != null) {
                     //Readjust myself in the pq with new priority
                     sumPriority = this.priority + sumPriority;
@@ -124,7 +127,7 @@ public class LotteryScheduler extends PriorityScheduler {
                     //Donate my priority to pq owner
                     if (pqWant.transferPriority == true){
                         pqWant.updateEntry(pqWant.holder, pqWant.holder.effectivePriority+difference);
-                        pqWant.holder.propagate(difference);
+                        ((LotteryThreadState)pqWant.holder).propagate(difference);
                     }
                 }
             }
@@ -138,7 +141,7 @@ public class LotteryScheduler extends PriorityScheduler {
 			//Propagate this ThreadState's effectivePriority to holder of pq
             if (pq.transferPriority == true) {
                 pq.updateEntry(pq.holder, pq.holder.effectivePriority+this.effectivePriority);
-                pq.holder.propagate(this.effectivePriority);
+                ((LotteryThreadState)pq.holder).propagate(this.effectivePriority);
             }
 		}
         //Added a line to acquire in PriorityScheduler

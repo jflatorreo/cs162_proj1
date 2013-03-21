@@ -64,16 +64,21 @@ public class UserProcess {
         lock.acquire();
 		processID = processCounter++;
         lock.release();
+
 		openFileList = new OpenFile[MAX_SIZE];
         openFileList[0] = UserKernel.console.openForReading();
         openFileList[1] = UserKernel.console.openForWriting();
 		numOpenFiles = 2;
+        
         //Part III
         parent = null;
         children = new HashMap<Integer, UserProcess>();
         exitStatus = Integer.MIN_VALUE;
         thread = null;
+
+        lock.acquire();
         numUserProcesses++;
+        lock.release();
 	}
 	
 	//Action Methods
@@ -177,40 +182,39 @@ public class UserProcess {
 	 * @return	the number of bytes successfully transferred.
 	 */
 	public int readVirtualMemory(int vaddr, byte[] data, int offset, int length) {
+        byte[] memory = Machine.processor().getMemory();
 
-    byte[] memory = Machine.processor().getMemory();
+        //total amount of pages read/written
+        int totalAmount = 0;
 
-    //total amount of pages read/written
-    int totalAmount = 0;
+        while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
+            //if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
+            int vpn = vaddr/pageSize;
+            
+            //if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
+            if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
+                return totalAmount;
+            }
+            //sets the page to used and dirty
+            pageTable[vpn].dirty = true;
+            pageTable[vpn].used = true;
+            int ppn = pageTable[vpn].ppn;
+            int byteStart = vaddr%pageSize;
+            
+            //copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
+            int amount = Math.min((vpn+1)*pageSize - vaddr, length);
 
-    while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
-        //if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
-        int vpn = vaddr/pageSize;
-        
-        //if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
-        if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
-            return totalAmount;
+            int paddr = ppn*pageSize + byteStart;
+
+            //write to the physical page corresponding to the current virtual page
+            System.arraycopy(memory, paddr, data, offset, amount);
+            offset += amount;
+            vaddr += amount;
+            length -= amount;
+            totalAmount += amount;
         }
-        //sets the page to used and dirty
-        pageTable[vpn].dirty = true;
-        pageTable[vpn].used = true;
-        int ppn = pageTable[vpn].ppn;
-        int byteStart = vaddr%pageSize;
-        
-        //copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
-        int amount = Math.min((vpn+1)*pageSize - vaddr, length);
 
-        int paddr = ppn*pageSize + byteStart;
-
-        //write to the physical page corresponding to the current virtual page
-        System.arraycopy(memory, paddr, data, offset amount);
-        offset += amount;
-        vaddr += amount;
-        length -= amount;
-        totalAmount += amount;
-    }
-
-    return totalAmount;
+        return totalAmount;
 	}
 
 	/**
@@ -386,7 +390,7 @@ public class UserProcess {
         UserKernel.pagesLock.release();
         
         //initialize the pageTable
-        pageTable = TranslationEntry[numPages];
+        //pageTable = new TranslationEntry[numPages];
         int additionalPage = 0;
         //the following is a critical section since we only want to modify the list of free pages one process at a time
         UserKernel.pagesLock.acquire();
@@ -396,14 +400,14 @@ public class UserProcess {
             //for each page in a section we create a new TranslationEntry with the corresponding Physical Page number (retrieved from UserKernel.pages list) and load that section into the physical page
             for (int i=0; i<section.getLength(); i++) {
                 int vpn = section.getFirstVPN()+i;
-                int ppn = UserKernel.pages.pop().intValue();
+                int ppn = ((Integer)UserKernel.pages.pop()).intValue();
                 pageTable[vpn] = new TranslationEntry(vpn, ppn, true, section.isReadOnly(), false, false);
                 section.loadPage(i, ppn);
                 additionalPage++;
             }
         }
         for (int j = additionalPage; j < numPages; j++){
-            pageTable[j] = new TranslationEntry(j, UserKernel.pages.pop().intValue(), true, false, false, false);
+            pageTable[j] = new TranslationEntry(j, ((Integer)UserKernel.pages.pop()).intValue(), true, false, false, false);
         }
         UserKernel.pagesLock.release();
         return true;
@@ -467,33 +471,31 @@ public class UserProcess {
 	 * Note that creat() can only be used to create files on disk; creat() will
 	 * never return a file descriptor referring to a stream.
 	 * 
-	 * @param a0 fileNameAddress
+	 * @param a0 fileNameAddress (first byte of virtual memory to read)
 	 * @return Returns the new file descriptor, or -1 if an error occurred.
 	 */
 	private int handleCreate(int a0) {
-		if (a0 < 0)
+		if (a0 < 0) //invalid fileNameAddr
 			return -1;
 		
 		String filename = readVirtualMemoryString(a0, 256); //a0: vaddr, 256: maxLength, returns String(buffer, 0, length)
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
-		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true); //try to open file with the filename, if no such file then create one with length 0
-		
-		int fileDescriptor = -1;
 		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
 			return -1;
-		else {
-			for (int i=2; i<MAX_SIZE; i++) {
-				if (openFileList[i] == null) {
-					openFileList[i] = openfile;
-					fileDescriptor = i;
-					numOpenFiles++;
-					break;
-				}
+
+		int fileDescriptor = -1;
+        for (int i=2; i<MAX_SIZE; i++) {
+            if (openFileList[i] == null) {
+		        OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true); //try to open file with the filename, if no such file then create one with length 0
+                openFileList[i] = openfile;
+                fileDescriptor = i;
+                numOpenFiles++;
+                return fileDescriptor;
 			}
-			return fileDescriptor;
-		}
+        }
+        return fileDescriptor;
 	}
 
 	/**
@@ -505,31 +507,30 @@ public class UserProcess {
 	 * @return Returns the new file descriptor, or -1 if an error occurred.
 	 */
 	private int handleOpen(int a0) {
-		if (a0 < 0)
+		if (a0 < 0) //invalid fileNameAddr
 			return -1;
 		
 		String filename = readVirtualMemoryString(a0, 256);
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
-		OpenFile openfile = ThreadedKernel.fileSystem.open(filename, false);
-		if (openfile == null) //cannot open the file with filename
-			return -1;
-		
-		int fileDescriptor = -1;
 		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
 			return -1;
-		else {
-			for (int i=2; i<MAX_SIZE; i++) {
-				if (openFileList[i] == null) {
-					openFileList[i] = openfile;
-					fileDescriptor = i;
-					numOpenFiles++;
-					break;
-				}
+
+		int fileDescriptor = -1;
+        for (int i=2; i<MAX_SIZE; i++) {
+            if (openFileList[i] == null) {
+		        OpenFile openfile = ThreadedKernel.fileSystem.open(filename, false);
+                if (openfile == null)
+                    return -1;
+
+                openFileList[i] = openfile;
+                fileDescriptor = i;
+                numOpenFiles++;
+                return fileDescriptor;
 			}
-			return fileDescriptor;
-		}
+        }
+        return fileDescriptor;
 	}
 
 
@@ -551,8 +552,8 @@ public class UserProcess {
 	 * no more data is available.
 	 * 
 	 * @param a0 fileDescriptor
-	 * @param a1 buffer
-	 * @param a2 count
+	 * @param a1 vaddr
+	 * @param a2 count (amount byte to read from the file)
 	 * @return number of bytes written to virtual memory
 	 */
 	private int handleRead(int a0, int a1, int a2) {
@@ -564,9 +565,9 @@ public class UserProcess {
 			return -1;
 		
 		byte[] tempBuffer = new byte[a2];
-		int bytesRead = openfile.read(tempBuffer, 0, a2); //read openfile from offset 0 to length a2, and save into tempBuffer
-		if (bytesRead == -1) //openfile.read returned error
-			return -1;
+		int bytesRead = openfile.read(tempBuffer, 0, a2); //read openfile from offset 0 to length a2, and save into tempBuffer //TODO openfile.read takes 4 arguments; need position
+		if (bytesRead == -1) //openfile.read returned error //TODO we don't want to check byteesRead != a2 because we are just attempting to read up to count bytes
+            return -1;
 		
 		return writeVirtualMemory(a1, tempBuffer); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
 	}
@@ -589,7 +590,7 @@ public class UserProcess {
 	 * if a network stream has already been terminated by the remote host.
 	 * 
 	 * @param a0 fileDescriptor
-	 * @param a1 buffer
+	 * @param a1 vaddr
 	 * @param a2 count
 	 * @return number of bytes written to the OpenFile
 	 */
