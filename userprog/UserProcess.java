@@ -41,7 +41,6 @@ public class UserProcess {
 	// Part I - nonstatic
 	private int processID;
 	private OpenFile[] openFileList;
-	private int numOpenFiles;
 	//Part III - static
 	private static Lock lock = new Lock();
 	private static int numUserProcesses = 0;
@@ -69,7 +68,6 @@ public class UserProcess {
 		openFileList = new OpenFile[MAX_SIZE];
 		openFileList[0] = UserKernel.console.openForReading();
 		openFileList[1] = UserKernel.console.openForWriting();
-		numOpenFiles = 2;
 		
 		//Part III
 		parent = null;
@@ -124,18 +122,15 @@ public class UserProcess {
 	}
 
 	/**
-	 * Read a null-terminated string from this process's virtual memory. Read
-	 * at most <tt>maxLength + 1</tt> bytes from the specified address, search
-	 * for the null terminator, and convert it to a <tt>java.lang.String</tt>,
-	 * without including the null terminator. If no null terminator is found,
-	 * returns <tt>null</tt>.
+     * Create empty byte[] with size maxLength+1. Then read at most maxLength+1
+     * bytes from this process's virtual memory, starting from specified address.
+     * Search for null terminator in byte[]. Return String(byte[], 0, length)
+     * without including the null terminator. If no null terminator is found,
+     * returns null.
 	 *
-	 * @param	vaddr	the starting virtual address of the null-terminated
-	 *			string.
-	 * @param	maxLength	the maximum number of characters in the string,
-	 *				not including the null terminator.
-	 * @return	the string read, or <tt>null</tt> if no null terminator was
-	 *		found.
+	 * @param	vaddr	    the starting virtual address of the null-terminated string.
+	 * @param	maxLength	the maximum number of characters in the string, not including the null terminator.
+	 * @return	the string read, or null if no null terminator was found.
 	 */
 	public String readVirtualMemoryString(int vaddr, int maxLength) {
 		Lib.assertTrue(maxLength >= 0);
@@ -468,31 +463,29 @@ public class UserProcess {
 	 * Note that creat() can only be used to create files on disk; creat() will
 	 * never return a file descriptor referring to a stream.
 	 * 
-	 * @param a0 fileNameAddress (first byte of virtual memory to read)
+	 * @param a0 fileNameAddress - first byte of virtual memory to read
 	 * @return Returns the new file descriptor, or -1 if an error occurred.
 	 */
 	private int handleCreate(int a0) {
 		if (a0 < 0) //invalid fileNameAddr
 			return -1;
 		
-		String filename = readVirtualMemoryString(a0, 256); //a0: vaddr, 256: maxLength, returns String(buffer, 0, length)
+		String filename = readVirtualMemoryString(a0, 256); //a0: vaddr, 256: maxLength
 		if (filename == null) //invalid filename (no null terminator was found)
-			return -1;
-		
-		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
 			return -1;
 
 		int fileDescriptor = -1;
-		for (int i=2; i<MAX_SIZE; i++) {
+		for (int i=2; i<MAX_SIZE; i++) { //0 and 1 are reserved for stdin and stdout
 			if (openFileList[i] == null) {
 				OpenFile openfile = ThreadedKernel.fileSystem.open(filename, true); //try to open file with the filename, if no such file then create one with length 0
+                if (openfile == null)
+                    return -1;
 				openFileList[i] = openfile;
 				fileDescriptor = i;
-				numOpenFiles++;
 				return fileDescriptor;
 			}
 		}
-		return fileDescriptor;
+		return fileDescriptor; //the # of files that are open is over MAX_SIZE
 	}
 
 	/**
@@ -507,27 +500,22 @@ public class UserProcess {
 		if (a0 < 0) //invalid fileNameAddr
 			return -1;
 		
-		String filename = readVirtualMemoryString(a0, 256);
+		String filename = readVirtualMemoryString(a0, 256); //a0: vaddr, 256: maxLength
 		if (filename == null) //invalid filename (no null terminator was found)
 			return -1;
 		
-		if (numOpenFiles >= MAX_SIZE) //the max number of files that one UserProcess can open is MAX_SIZE
-			return -1;
-
 		int fileDescriptor = -1;
-		for (int i=2; i<MAX_SIZE; i++) {
+		for (int i=2; i<MAX_SIZE; i++) { //0 and 1 are reserved for stdin and stdout
 			if (openFileList[i] == null) {
 				OpenFile openfile = ThreadedKernel.fileSystem.open(filename, false);
 				if (openfile == null)
 					return -1;
-
 				openFileList[i] = openfile;
 				fileDescriptor = i;
-				numOpenFiles++;
 				return fileDescriptor;
 			}
 		}
-		return fileDescriptor;
+		return fileDescriptor; //the # of files that are open is over MAX_SIZE
 	}
 
 
@@ -637,7 +625,6 @@ public class UserProcess {
 		
 		openFileList[a0].close();
 		openFileList[a0] = null;
-		numOpenFiles--;
 		return 0;
 	}
 
@@ -665,7 +652,6 @@ public class UserProcess {
 			if (openFileList[i] != null && openFileList[i].getName() == filename) {
 				openFileList[i].close();
 				openFileList[i] = null;
-				numOpenFiles--;
 			}
 		}
 
