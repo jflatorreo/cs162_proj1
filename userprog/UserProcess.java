@@ -566,7 +566,10 @@ public class UserProcess {
 		if (bytesRead == -1) //openfile.read returned error
 			return -1;
 		
-		return writeVirtualMemory(a1, tempBuffer, 0, bytesRead); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
+		int bytesWrite = writeVirtualMemory(a1, tempBuffer, 0, bytesRead); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
+		if (bytesWrite != bytesRead)
+			return -1;
+		return bytesWrite;
 	}
 
 	/**
@@ -603,7 +606,7 @@ public class UserProcess {
 		int bytesRead = readVirtualMemory(a1, tempBuffer, 0, a2);
 		
 		int bytesWrite = openfile.write(tempBuffer, 0, bytesRead);
-		if (bytesWrite == -1) //openfile.write returned error or size not equal to count(a2)
+		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error
 			return -1;
 		
 		return bytesWrite;
@@ -659,8 +662,7 @@ public class UserProcess {
 			return -1;
 		
 		for (int i=0; i<MAX_SIZE; i++) {
-			//if (openFileList[i] != null && openFileList[i].getName() == filename) {
-			if (openFileList[i].getName() == filename) {
+			if (openFileList[i] != null && openFileList[i].getName() == filename) {
 				openFileList[i].close();
 				openFileList[i] = null;
 				numOpenFiles--;
@@ -705,9 +707,9 @@ public class UserProcess {
 		}
 
 		unloadSections();
-		this.exitStatus = a0;
 		
 		lock.acquire();
+		this.exitStatus = a0;
 		if (numUserProcesses == 1) { //only one UserProcess left -> terminate kernel
 			Kernel.kernel.terminate();
 		}
@@ -813,10 +815,13 @@ public class UserProcess {
 				return 0;
 		}
 		
-		return 1;
-		//if (child.exitStatus == 0)
-		//	return 1; //child process exited normally
-		//return 0;
+		lock.acquire();
+		int childStatus = child.exitStatus;
+		lock.release();
+		
+		if (childStatus == 0)
+			return 1; //child process exited normally
+		return 0;
 	}
 
 	private static final int
