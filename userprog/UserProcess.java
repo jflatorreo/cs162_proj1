@@ -566,7 +566,7 @@ public class UserProcess {
 		if (bytesRead == -1) //openfile.read returned error //TODO we don't want to check byteesRead != a2 because we are just attempting to read up to count bytes
 			return -1;
 		
-		return writeVirtualMemory(a1, tempBuffer); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
+		return writeVirtualMemory(a1, tempBuffer, 0, bytesRead); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
 	}
 
 	/**
@@ -601,10 +601,8 @@ public class UserProcess {
 		
 		byte[] tempBuffer = new byte[a2];
 		int bytesRead = readVirtualMemory(a1, tempBuffer, 0, a2);
-		if (bytesRead != a2) //bytesRead not equal to count(a2)
-			return -1;
 		
-		int bytesWrite = openfile.write(tempBuffer, 0, a2);
+		int bytesWrite = openfile.write(tempBuffer, 0, bytesRead);
 		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error or size not equal to count(a2)
 			return -1;
 		
@@ -741,21 +739,21 @@ public class UserProcess {
 	 * @param a1 argc (int)
 	 * @param a2 argv (char *argv[])
 	 */
-	private int handleExec(int a0, int a1, int a2) {
-		if (a0 < 0 || a1 < 0)
+	private int handleExec(int filenameVirtualAddr, int argCounter, int argOffset) {
+		if (filenameVirtualAddr < 0 || argCounter < 0)
 			return -1;
 
-		String filename = readVirtualMemoryString(a0, 256);
+		String filename = readVirtualMemoryString(filenameVirtualAddr, 256);
 		if (filename == null || !filename.endsWith(".coff")) //invalid filename (no null terminator was found)
 			return -1;
 
-		String[] arguments = new String[a1]; //array of String argument
+		String[] arguments = new String[argCounter]; //array of String argument
 		byte[] buffer;
 		int bytesRead;
 		int argumentAddress;
-		for (int i=0; i<a1; i++) {
+		for (int i=0; i<argCounter; i++) {
 			buffer = new byte[4];
-			bytesRead = readVirtualMemory(a2+(i*4), buffer);
+			bytesRead = readVirtualMemory(argOffset+(i*4), buffer);
 			
 			if (bytesRead != 4) //bytesRead not equal to the size of char*
 				return -1;
@@ -807,13 +805,16 @@ public class UserProcess {
 		if (a1 >= 0) {
 			byte[] buffer = Lib.bytesFromInt(child.exitStatus);
 			int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
+			
+			Lib.assertTrue(buffer.length == 4);
+			
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
 		}
-		
-		if (child.exitStatus == 0)
-			return 1; //child process exited normally
-		return 0;
+		return 1;
+		//if (child.exitStatus == 0)
+		//	return 1; //child process exited normally
+		//return 0;
 	}
 
 	private static final int
