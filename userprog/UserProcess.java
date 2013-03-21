@@ -605,8 +605,8 @@ public class UserProcess {
 		byte[] tempBuffer = new byte[a2];
 		int bytesRead = readVirtualMemory(a1, tempBuffer, 0, a2);
 		
-		int bytesWrite = openfile.write(tempBuffer, 0, bytesRead);
-		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error
+		int bytesWrite = openfile.write(tempBuffer, 0, a2);
+		if (bytesWrite == -1 || bytesWrite != bytesRead) //openfile.write returned error
 			return -1;
 		
 		return bytesWrite;
