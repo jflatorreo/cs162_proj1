@@ -700,7 +700,6 @@ public class UserProcess {
 		}
 		lock.release(); //critical section end
 		
-		
 		for (int i = 0; i < openFileList.length; i++) { // clear my openFiles... (close all openFile I have)
 			if (openFileList[i] != null)
 				handleClose(i);
@@ -810,11 +809,9 @@ public class UserProcess {
 		if (a1 >= 0) {
 			byte[] buffer = Lib.bytesFromInt(child.exitStatus);
 			writeVirtualMemory(a1, buffer, 0, buffer.length);
-			/*
 			int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
-			*/
 		}
 		
 		if (child.exitStatus == 0)
