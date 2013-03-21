@@ -811,10 +811,10 @@ public class UserProcess {
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
 		}
-		return 1;
-		//if (child.exitStatus == 0)
-		//	return 1; //child process exited normally
-		//return 0;
+		
+		if (child.exitStatus == 0)
+			return 1; //child process exited normally
+		return 0;
 	}
 
 	private static final int
