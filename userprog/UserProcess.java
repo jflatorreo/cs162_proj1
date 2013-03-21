@@ -689,7 +689,6 @@ public class UserProcess {
 	 * @return None
 	 */
 	private void handleExit(int a0) {
-		/*
 		lock.acquire(); //critical section start
 		for (UserProcess child: children.values()) {
 			if(child != null)
@@ -700,7 +699,8 @@ public class UserProcess {
 			this.parent.children.remove(processID);
 		}
 		lock.release(); //critical section end
-		*/
+		
+		
 		for (int i = 0; i < openFileList.length; i++) { // clear my openFiles... (close all openFile I have)
 			if (openFileList[i] != null)
 				handleClose(i);
@@ -805,10 +805,15 @@ public class UserProcess {
 		
 		child.thread.join();
 		
-		byte[] buffer = Lib.bytesFromInt(child.exitStatus);
-		int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
-		if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
-			return 0;
+		if (a1 >= 0) {
+			byte[] buffer = Lib.bytesFromInt(child.exitStatus);
+			writeVirtualMemory(a1, buffer, 0, buffer.length);
+			/*
+			int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
+			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
+				return 0;
+			*/
+		}
 		
 		if (child.exitStatus == 0)
 			return 1; //child process exited normally
