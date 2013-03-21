@@ -562,8 +562,8 @@ public class UserProcess {
 			return -1;
 		
 		byte[] tempBuffer = new byte[a2];
-		int bytesRead = openfile.read(tempBuffer, 0, a2); //read openfile from offset 0 to length a2, and save into tempBuffer //TODO openfile.read takes 4 arguments; need position
-		if (bytesRead == -1) //openfile.read returned error //TODO we don't want to check byteesRead != a2 because we are just attempting to read up to count bytes
+		int bytesRead = openfile.read(tempBuffer, 0, a2); //read openfile from offset 0 to length a2, and save into tempBuffer
+		if (bytesRead == -1) //openfile.read returned error
 			return -1;
 		
 		return writeVirtualMemory(a1, tempBuffer, 0, bytesRead); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
