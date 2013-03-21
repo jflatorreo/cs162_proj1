@@ -750,31 +750,29 @@ public class UserProcess {
 			return -1;
 
 		String[] arguments = new String[a1]; //array of String argument
-		//byte[] buffer;
-		//int bytesRead;
-		//int argumentAddress;
+		byte[] buffer;
+		int bytesRead;
+		int argumentAddress;
 		for (int i=0; i<a1; i++) {
-			//buffer = new byte[4];
-			//bytesRead = readVirtualMemory(a2, buffer, 4*i, 4);
-			//if (bytesRead != 4) //bytesRead not equal to the size of char*
-			//	return -1;
-			//argumentAddress = Lib.bytesToInt(buffer, 0);
-			//arguments[i] = readVirtualMemoryString(argumentAddress, 256);
-			arguments[i] = readVirtualMemoryString(a2, 256);
-			a2 += 256;
-			//if (arguments[i] == null) //invalid file(argument) name
-			//	return -1;
+			buffer = new byte[4];
+			bytesRead = readVirtualMemory(a2+(i*4), buffer);
+			
+			if (bytesRead != 4) //bytesRead not equal to the size of char*
+				return -1;
+			argumentAddress = Lib.bytesToInt(buffer, 0);
+			arguments[i] = readVirtualMemoryString(argumentAddress, 256);
+			
+			if (arguments[i] == null) //invalid file(argument) name
+				return -1;
 		}
 
 		UserProcess child = newUserProcess();
-		child.parent = this;
-		
-		if (this.parent != null)
-			this.parent.children.put(child.processID, child);
-		
 		boolean result = child.execute(filename, arguments);
 		if (result == false) //execute fail
 			return -1;
+		
+		child.parent = this;
+		this.children.put(child.processID, child);
 		return child.processID;
 	}
 
@@ -808,7 +806,6 @@ public class UserProcess {
 		
 		if (a1 >= 0) {
 			byte[] buffer = Lib.bytesFromInt(child.exitStatus);
-			writeVirtualMemory(a1, buffer, 0, buffer.length);
 			int bytesWrite = writeVirtualMemory(a1, buffer, 0, buffer.length);
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
