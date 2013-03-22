@@ -406,12 +406,14 @@ public class UserProcess {
 	 * Release any resources allocated by <tt>loadSections()</tt>.
 	 */
 	protected void unloadSections() {
-	   UserKernel.lock.acquire();
-       for (int i=0; i<numPages; i++)
-           UserKernel.pages.add(pageTable[i].ppn);
-       UserKernel.lock.release();
-       coff.close();
-	}	
+	    UserKernel.lock.acquire();
+        for (int i=0; i<numPages; i++) {
+            if (pageTable[i] != null)
+                UserKernel.pages.add(Integer(pageTable[i].ppn));
+        }
+        UserKernel.lock.release();
+        coff.close();
+    }	
 
 	/**
 	 * Initialize the processor's registers in preparation for running the
