@@ -137,7 +137,6 @@ public class UserProcess {
 	 */
 	public String readVirtualMemoryString(int vaddr, int maxLength) {
 		Lib.assertTrue(maxLength >= 0);
-		System.out.println("Entered readVMString vaddr = " + vaddr + ", maxLength = " + maxLength);
 		
         byte[] bytes = new byte[maxLength+1];
 		int bytesRead = readVirtualMemory(vaddr, bytes);
@@ -177,7 +176,6 @@ public class UserProcess {
 	 */
 	public int readVirtualMemory(int vaddr, byte[] data, int offset, int length) {
 		byte[] memory = Machine.processor().getMemory();
-		System.out.println("Entered readVMS vaddr = " + vaddr + ", data=" + data + ", offset=" + offset + ", length=" + length);
 
 		//total amount of pages read/written
 		int totalAmount = 0;
@@ -242,7 +240,6 @@ public class UserProcess {
 
 	public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
 		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
-		System.out.println("Entered writeVM vaddr = " + vaddr + ", data=" + data + ", offset="+ offset + ", length =" + length);
 
 		byte[] memory = Machine.processor().getMemory();
 
@@ -726,21 +723,12 @@ public class UserProcess {
 	 * @param a2 argv (char *argv[])
 	 */
 	private int handleExec(int filenameVirtualAddr, int argCounter, int argOffset) {
-        System.out.println("Entering handleExec!!!!");
-		if (filenameVirtualAddr < 0 || argCounter < 0) {
-            System.out.println("inside 1st if");
+		if (filenameVirtualAddr < 0 || argCounter < 0)
 			return -1;
-        }
 
 		String filename = readVirtualMemoryString(filenameVirtualAddr, 256);
-		if (filename == null || !filename.endsWith(".coff")) { //invalid filename (no null terminator was found)
-            System.out.println("inside 2nd if");
-            if (filename == null)
-                System.out.println("filename == null");
-            if (!filename.endsWith(".coff"))
-                System.out.println("!filename.endsWith('.coff')");
+		if (filename == null || !filename.endsWith(".coff")) //invalid filename (no null terminator was found)
 			return -1;
-        }
 
 		String[] arguments = new String[argCounter]; //empty array of String argument
 		byte[] buffer;
@@ -749,27 +737,14 @@ public class UserProcess {
 		for (int i=0; i<argCounter; i++) {
 			buffer = new byte[4];
 			bytesRead = readVirtualMemory(argOffset+(i*4), buffer);
-			
-			if (bytesRead != 4) { //bytesRead not equal to the size of char*
-                System.out.println("inside 3rd if");
+			if (bytesRead != 4) //bytesRead not equal to the size of char*
 				return -1;
-            }
 			argumentAddress = Lib.bytesToInt(buffer, 0);
 			arguments[i] = readVirtualMemoryString(argumentAddress, 256);
 			
-			if (arguments[i] == null) { //invalid file(argument) name
-                System.out.println("inside 4th if");
+			if (arguments[i] == null) //invalid file(argument) name
 				return -1;
-            }
 		}
-
-        //TESTING
-        String tempArg = "[";
-        for (int i=0; i<argCounter; i++)
-            tempArg += arguments[i]+", ";
-        tempArg += "]";
-        System.out.println("filename = " + filename + ", arguments = " + tempArg);
-        //TESTING ENDS
 
 		UserProcess child = newUserProcess();
 		boolean result = child.execute(filename, arguments);
