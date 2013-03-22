@@ -72,10 +72,11 @@ public class LotteryScheduler extends PriorityScheduler {
 		  } else {
 		    ts.effectivePriority = newEffectivePriority;	
 		  }
-		  pqWant.holder.propagate(difference);
+		  pqWant.propagate(difference);
 		}		
 	    }
             //propagate
+            int difference = newEffectivePriority-oldPriority;
             if(difference != 0)
                 ts.propagate(difference);
 	}

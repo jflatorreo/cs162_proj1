@@ -136,15 +136,14 @@ public class UserProcess {
 	public String readVirtualMemoryString(int vaddr, int maxLength) {
 		Lib.assertTrue(maxLength >= 0);
 		System.out.println("Entered readVMString vaddr = " + vaddr + ", maxLength = " + maxLength);
-		byte[] bytes = new byte[maxLength+1];
-
+		
+        byte[] bytes = new byte[maxLength+1];
 		int bytesRead = readVirtualMemory(vaddr, bytes);
 
 		for (int length=0; length<bytesRead; length++) {
 			if (bytes[length] == 0)
 			return new String(bytes, 0, length);
 		}
-
 		return null;
 	}
 
@@ -557,7 +556,6 @@ public class UserProcess {
 		int bytesRead = openfile.read(tempBuffer, 0, a2); //read openfile from offset 0 to length a2, and save into tempBuffer
 		if (bytesRead == -1) //openfile.read returned error
 			return -1;
-		
 		int bytesWrite = writeVirtualMemory(a1, tempBuffer, 0, bytesRead); //write tempBuffer into a1(vaddr) with offset 0 and tempBuffer.length. Then returns amount of bytes written
 		if (bytesWrite != bytesRead)
 			return -1;
@@ -598,7 +596,6 @@ public class UserProcess {
 		int bytesWrite = openfile.write(tempBuffer, 0, bytesRead);
 		if (bytesWrite == -1 || bytesWrite != a2) //openfile.write returned error or bytesWrite smaller than a2
 			return -1;
-		
 		return bytesWrite;
 	}
 
@@ -804,14 +801,7 @@ public class UserProcess {
 			if (bytesWrite == -1 || bytesWrite != buffer.length) //unhandled exception
 				return 0;
 		}
-		
 		return 1;
-		/*
-		int myStatus = this.exitStatus;
-		if (myStatus == 0)
-			return 1; //child process exited normally
-		return 0;
-		*/
 	}
 
 	private static final int
