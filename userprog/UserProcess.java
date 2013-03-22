@@ -12,8 +12,6 @@ import java.util.Iterator;
  * Encapsulates the state of a user process that is not contained in its
  * user thread (or threads). This includes its address translation state, a
  * file table, and information about the program being executed.
- *
- * <p>
  * This class is extended by other classes to support additional functionality
  * (such as additional syscalls).
  *
@@ -53,13 +51,6 @@ public class UserProcess {
 
 	//Constructor
 	public UserProcess() {
-        /*
-		int numPhysPages = Machine.processor().getNumPhysPages();
-		pageTable = new TranslationEntry[numPhysPages];
-		for (int i=0; i<numPhysPages; i++)
-			pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
-		*/
-		//Initialize New Fields
 		//Part I
 		lock.acquire();
 		processID = processCounter++;
@@ -78,8 +69,7 @@ public class UserProcess {
 	//Action Methods
 	/**
 	 * Allocate and return a new process of the correct class. The class name
-	 * is specified by the <tt>nachos.conf</tt> key
-	 * <tt>Kernel.processClassName</tt>.
+	 * is specified by the nachos.conf key Kernel.processClassName.
 	 *
 	 * @return	a new process of the correct class.
 	 */
@@ -163,7 +153,7 @@ public class UserProcess {
 	/**
 	 * Transfer data from this process's virtual memory to the specified array.
 	 * This method handles address translation details. This method must
-	 * <i>not</i> destroy the current process if an error occurs, but instead
+	 * not destroy the current process if an error occurs, but instead
 	 * should return the number of bytes successfully copied (or zero if no
 	 * data could be copied).
 	 *
@@ -206,7 +196,6 @@ public class UserProcess {
 			length -= amount;
 			totalAmount += amount;
 		}
-
 		return totalAmount;
 	}
 
@@ -272,7 +261,6 @@ public class UserProcess {
 			length -= amount;
 			totalAmount += amount;
 		}
-
 		return totalAmount;
 	}
 
@@ -412,8 +400,16 @@ public class UserProcess {
                 UserKernel.pages.add(new Integer(pageTable[i].ppn));
         }
         UserKernel.lock.release();
-        if (coff != null)
-            coff.close();
+        
+        if (this.coff != null) {
+            this.coff.close();
+            this.coff = null;
+        }
+
+		for (int i = 0; i < MAX_SIZE; i++) { //close all openfiles that this process have
+			if (openFileList[i] != null)
+				handleClose(i);
+		}
     }	
 
 	/**
@@ -682,16 +678,6 @@ public class UserProcess {
 		}
 		lock.release(); //critical section end
 		
-        if (this.coff != null) {
-            this.coff.close();
-            this.coff = null;
-        }
-
-		for (int i = 0; i < openFileList.length; i++) { //close all openfiles that this process have
-			if (openFileList[i] != null)
-				handleClose(i);
-		}
-
 		unloadSections();
 		this.exitStatus = a0;
 		
