@@ -388,8 +388,8 @@ public class UserProcess {
         //connect this process's virtual pages to free physical pages
         pageTable = new TranslationEntry[numPages];
         for (int i=0; i<numPages; i++) {
-            int freePhysPage = (int)UserKernel.pages.poll();
-            pageTable[i] = new TranslationEntry(i,freePhysPage,true,false,false,false);
+            int freePhysPageNum = ((Integer)(UserKernel.pages.poll())).intValue();
+            pageTable[i] = new TranslationEntry(i,freePhysPageNum,true,false,false,false);
         }
         UserKernel.lock.release();
 
