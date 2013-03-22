@@ -67,7 +67,7 @@ public class LotteryScheduler extends PriorityScheduler {
 		  ts.propagate(difference);
 	    } else {
 		if(holder != ts) {
-		  System.out.println("PROBLEM HERE");
+		  //System.out.println("PROBLEM HERE");
 		} else {
 		  if(ts.pqWant != null) {
 		    ts.pqWant.updateEntry(ts, newEffectivePriority);
@@ -87,12 +87,12 @@ public class LotteryScheduler extends PriorityScheduler {
             int ticketCount = 0;
             Iterator<ThreadState> itr = this.waitQueue.iterator();
             while(itr.hasNext()) {
-                System.out.println("ticketCount is " + ticketCount);
+                //System.out.println("ticketCount is " + ticketCount);
                 ThreadState next = itr.next();
-                System.out.println("thread: " + next.thread.getName());
+                //System.out.println("thread: " + next.thread.getName());
                 ticketCount += next.getEffectivePriority();
             }
-            System.out.println("ticketCount is " + ticketCount);
+            //System.out.println("ticketCount is " + ticketCount);
 
             if(ticketCount > 0) {
                 int num = randomGenerator.nextInt(ticketCount);
@@ -184,56 +184,56 @@ public class LotteryScheduler extends PriorityScheduler {
         
         Machine.interrupt().disable();
         
-        System.out.println("===========LotteryScheduler Test============");
+        //System.out.println("===========LotteryScheduler Test============");
 
         Lib.assertTrue(pq[0].waitQueue.size()==0);
         pq[0].acquire(t[0]);
 	Lib.assertTrue(pq[0].holder.thread.equals(t[0]));
 	Lib.assertTrue(pq[0].waitQueue.size()==0);
-        System.out.println("pq[0].acquire(t[0])");
+        //System.out.println("pq[0].acquire(t[0])");
 	Lib.assertTrue(pq[0].holder.effectivePriority == 1);
 
         lts[0].setPriority(5);
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 5);
-        System.out.println("lts[0].setPriority(5)");
+        //System.out.println("lts[0].setPriority(5)");
         
         pq[0].waitForAccess(t[1]);
-        System.out.println("pq[0].waitForAccess(t[1])");
+        //System.out.println("pq[0].waitForAccess(t[1])");
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 6);
 
         Lib.assertTrue(pq[0].waitQueue.size() == 1);
         KThread temp = pq[0].pickNextThread().thread;
-        System.out.println("pq[0].pickNextThread()");
-	System.out.println("nextThread is " + temp.getName());
+        //System.out.println("pq[0].pickNextThread()");
+	//System.out.println("nextThread is " + temp.getName());
         Lib.assertTrue(temp != null);
         
         pq[0].waitForAccess(t[2]);
-        System.out.println("pq[0].waitForAccess(t[2])");
+        //System.out.println("pq[0].waitForAccess(t[2])");
 	Lib.assertTrue(pq[0].waitQueue.size() == 2);
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 7);
         
         lts[1].setPriority(3);
-        System.out.println("lts[1].setPriority(3)");
+        //System.out.println("lts[1].setPriority(3)");
         Lib.assertTrue(lts[1].priority == 3);
 	Lib.assertTrue(lts[1].effectivePriority == 3);
 	Lib.assertTrue(lts[0].effectivePriority == 9);
         
         
         lts[2].setPriority(6);
-        System.out.println("lts[2].setPriority(6)");
+        //System.out.println("lts[2].setPriority(6)");
         Lib.assertTrue(lts[2].priority == 6);
 	Lib.assertTrue(lts[2].effectivePriority == 6);
 	Lib.assertTrue(lts[0].effectivePriority == 14);
         
         temp = pq[0].nextThread();
-        System.out.println("pq[0].nextThread() is " + temp);
+        //System.out.println("pq[0].nextThread() is " + temp);
         temp = pq[0].nextThread();
-        System.out.println("pq[0].nextThread() is " + temp);
+        //System.out.println("pq[0].nextThread() is " + temp);
         temp = pq[0].nextThread();
-        System.out.println("pq[0].nextThread() is " + temp);
+        //System.out.println("pq[0].nextThread() is " + temp);
 
 	Lib.assertTrue(lts[0].effectivePriority == 5);
 	Lib.assertTrue(lts[1].effectivePriority == 3);
@@ -259,21 +259,21 @@ public class LotteryScheduler extends PriorityScheduler {
 	Lib.assertTrue(lts[1].effectivePriority == 104);
 	Lib.assertTrue(lts[0].effectivePriority == 109);
 
-        System.out.println("lts[2] priority is " + lts[2].priority);
-        System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
-        System.out.println("prev lock holder effective priority is " + lts[0].effectivePriority);
+        //System.out.println("lts[2] priority is " + lts[2].priority);
+        //System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
+        //System.out.println("prev lock holder effective priority is " + lts[0].effectivePriority);
         
         temp = pq[0].nextThread();
-        System.out.println("pq[0].nextThread()");
-        System.out.println("nextThread == null is: " + (temp == null));
+        //System.out.println("pq[0].nextThread()");
+        //System.out.println("nextThread == null is: " + (temp == null));
         
         ThreadState temp2 = pq[0].pickNextThread();
-        System.out.println("pq[0].pickNextThread()");
-        System.out.println("pickNextThread == null is: " + (temp2 == null));
+        //System.out.println("pq[0].pickNextThread()");
+        //System.out.println("pickNextThread == null is: " + (temp2 == null));
         
         temp = pq[0].nextThread();
-        System.out.println("pq[0].nextThread()");
-        System.out.println("nextThread == null is: " + (temp == null));
+        //System.out.println("pq[0].nextThread()");
+        //System.out.println("nextThread == null is: " + (temp == null));
         
         Machine.interrupt().enable();
     }
