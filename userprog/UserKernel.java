@@ -13,8 +13,11 @@ public class UserKernel extends ThreadedKernel {
 	/** Globally accessible reference to the synchronized console. */
 	public static SynchConsole console;
 	private static Coff dummy1 = null; // dummy variables to make javac smarter
+
+    //New Fields
+    //Part II - static
     public static LinkedList pages;
-	public static Lock pagesLock;
+	public static Lock lock;
 
 	//Constructor
 	public UserKernel() {
@@ -28,16 +31,18 @@ public class UserKernel extends ThreadedKernel {
 	public void initialize(String[] args) {
 		super.initialize(args);
 		console = new SynchConsole(Machine.console());
-        
-        pages = new LinkedList<Integer>();
-        for (int i = 0; i<Machine.processor().getNumPhysPages(); i++){
-            pages.add(new Integer(i));
-        }
-        pagesLock = new Lock();
-	
     	Machine.processor().setExceptionHandler(new Runnable() {
 			public void run() { exceptionHandler(); }
 		});
+
+        //Initialize New Fields
+        //Part II
+        pages = new LinkedList<Integer>();
+        int numPhysPages = Machine.processor().getNumPhysPages();
+        for (int i = 0; i<numPhysPages; i++){
+            pages.add(new Integer(i));
+        }
+        lock = new Lock();
 	}
 
 	/**

@@ -59,7 +59,7 @@ public class UserProcess {
 		for (int i=0; i<numPhysPages; i++)
 			pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
 		*/
-		//Initialize new fields
+		//Initialize New Fields
 		//Part I
 		lock.acquire();
 		processID = processCounter++;
@@ -375,51 +375,45 @@ public class UserProcess {
 	 * @return	<tt>true</tt> if the sections were successfully loaded.
 	 */
 	protected boolean loadSections() {
-		UserKernel.pagesLock.acquire();
-
-		//if there are not enough free physical pages at the time we return false
+		//If there are not enough free physical pages at the time we return false
+        //Since loadSections() is called by multiple processes, checking size should be
+        //inside the critical section.
+		UserKernel.lock.acquire();
 		if(UserKernel.pages.size() < numPages){
-			UserKernel.pagesLock.release();
+			UserKernel.lock.release();
 			coff.close();
 			return false;
 		}
-		UserKernel.pagesLock.release();
-		
-		//initialize the pageTable
-		pageTable = new TranslationEntry[numPages];
-		int additionalPage = 0;
-		//the following is a critical section since we only want to modify the list of free pages one process at a time
-		UserKernel.pagesLock.acquire();
-		for (int s=0; s<coff.getNumSections(); s++) {
-			CoffSection section = coff.getSection(s);
 
-			//for each page in a section we create a new TranslationEntry with the corresponding Physical Page number (retrieved from UserKernel.pages list) and load that section into the physical page
-			for (int i=0; i<section.getLength(); i++) {
-				int vpn = section.getFirstVPN()+i;
-				int ppn = ((Integer)UserKernel.pages.pop()).intValue();
-				pageTable[vpn] = new TranslationEntry(vpn, ppn, true, section.isReadOnly(), false, false);
-				section.loadPage(i, ppn);
-				additionalPage++;
-			}
-		}
-		for (int j = additionalPage; j < numPages; j++){
-			pageTable[j] = new TranslationEntry(j, ((Integer)UserKernel.pages.pop()).intValue(), true, false, false, false);
-		}
-		UserKernel.pagesLock.release();
-		return true;
-	}
+        //connect this process's virtual pages to free physical pages
+        pageTable = new TranslationEntry[numPages];
+        for (int i=0; i<numPages; i++) {
+            int freePhysPage = (int)UserKernel.pages.poll();
+            pageTable[i] = new TranslationEntry(i,freePhysPage,true,false,false,false);
+        }
+        UserKernel.lock.release();
+
+        //load sections
+        for (int s=0; s<coff.getNumSections(); s++) {
+            CoffSection section = coff.getSection(s);
+            for (int i=0; i<section.getLength(); i++) {
+                int vpn = section.getFirstVPN()+i;
+                section.loadPage(i, pageTable[vpn].ppn);
+            }
+        }
+        return true;
+    }
 	
 
 	/**
 	 * Release any resources allocated by <tt>loadSections()</tt>.
 	 */
 	protected void unloadSections() {
-	   UserKernel.pagesLock.acquire();
-		for(int i=0; i<pageTable.length; i++){
-			pageTable[i].valid = false;
-			UserKernel.pages.add(new Integer(pageTable[i].ppn));
-		}
-		UserKernel.pagesLock.release();
+	   UserKernel.lock.acquire();
+       for (int i=0; i<numPages; i++)
+           UserKernel.pages.add(pageTable[i].ppn);
+       UserKernel.lock.release();
+       coff.close();
 	}	
 
 	/**
