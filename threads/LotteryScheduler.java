@@ -63,16 +63,17 @@ public class LotteryScheduler extends PriorityScheduler {
             if(this.waitQueue.remove(ts)) {
 	   	ts.effectivePriority = newEffectivePriority;
             	this.waitQueue.add(ts);
+		if(difference != 0)
+		  ts.propagate(difference);
 	    } else {
 		if(holder != ts) {
 		  System.out.println("PROBLEM HERE");
 		} else {
 		  if(ts.pqWant != null) {
-		    pqWant.updateEntry(ts, newEffectivePriority);
+		    ts.pqWant.updateEntry(ts, newEffectivePriority);
 		  } else {
 		    ts.effectivePriority = newEffectivePriority;	
 		  }
-		  pqWant.holder.propagate(difference);
 		}		
 	    }
             //propagate

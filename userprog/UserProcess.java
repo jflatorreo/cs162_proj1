@@ -754,11 +754,19 @@ public class UserProcess {
 				return -1;
 		}
 
+        //TESTING
+        String tempArg = "[";
+        for (int i=0; i<argCounter; i++)
+            tempArg += arguments[i]+", ";
+        tempArg += "]";
+        System.out.println("filename = " + filename + ", arguments = " + tempArg);
+        //TESTING ENDS
+
 		UserProcess child = newUserProcess();
 		boolean result = child.execute(filename, arguments);
 		if (result == false) //execute fail
 			return -1;
-		
+
 		child.parent = this;
 		this.children.put(child.processID, child);
 		return child.processID;
