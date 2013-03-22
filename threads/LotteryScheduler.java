@@ -60,7 +60,9 @@ public class LotteryScheduler extends PriorityScheduler {
         }
         public void updateEntry(ThreadState ts, int newEffectivePriority) {
             int oldPriority = ts.getEffectivePriority();
+            this.waitQueue.remove(ts);
 			ts.effectivePriority = newEffectivePriority;
+            this.waitQueue.add(ts);
             //propagate
             int difference = newEffectivePriority-oldPriority;
             if(difference != 0)
@@ -127,8 +129,14 @@ public class LotteryScheduler extends PriorityScheduler {
             //If there is a change in priority, update and propagate to other owners
             if (sumPriority != this.effectivePriority) {
                 int difference = sumPriority - this.effectivePriority;
-                this.effectivePriority = sumPriority;
-                this.propagate(difference);
+                if (pqWant != null) {
+                    pqWant.waitQueue.remove(this);
+                    this.effectivePriority = sumPriority;
+                    pqwant.waitQueue.add(this);
+                    this.propagate(difference);
+                } else {
+                    this.effectivePriority = sumPriority;
+                }
             }
         }
         //DONE!!!!
