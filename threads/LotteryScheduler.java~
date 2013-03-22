@@ -186,53 +186,79 @@ public class LotteryScheduler extends PriorityScheduler {
         
         System.out.println("===========LotteryScheduler Test============");
 
-        System.out.println("priority defaults to " + lts[0].priority);
-        System.out.println("pq[0].waitQueue.size() = " + pq[0].waitQueue.size());
+        Lib.assertTrue(pq[0].waitQueue.size()==0);
         pq[0].acquire(t[0]);
+	Lib.assertTrue(pq[0].holder.thread.equals(t[0]));
+	Lib.assertTrue(pq[0].waitQueue.size()==0);
         System.out.println("pq[0].acquire(t[0])");
-        System.out.println("lock holder effective priority is " + pq[0].holder.effectivePriority);
-        System.out.println("pq[0].waitQueue.size() = " + pq[0].waitQueue.size());
+	Lib.assertTrue(pq[0].holder.effectivePriority == 1);
 
         lts[0].setPriority(5);
+	Lib.assertTrue(lts[0].priority == 5);
+	Lib.assertTrue(lts[0].effectivePriority == 5);
         System.out.println("lts[0].setPriority(5)");
-        System.out.println("pq[0].waitQueue.size() = " + pq[0].waitQueue.size());
-        
-        System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
         
         pq[0].waitForAccess(t[1]);
         System.out.println("pq[0].waitForAccess(t[1])");
-        System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
-        System.out.println("pq[0].waitQueue.size() = " + pq[0].waitQueue.size());
+	Lib.assertTrue(lts[0].priority == 5);
+	Lib.assertTrue(lts[0].effectivePriority == 6);
+
+        Lib.assertTrue(pq[0].waitQueue.size() == 1);
         KThread temp = pq[0].pickNextThread().thread;
         System.out.println("pq[0].pickNextThread()");
-        if (temp == null)
-            System.out.println("nextThread is null");
-        else
-            System.out.println("nextThread  is " + temp.getName());
+	System.out.println("nextThread is " + temp.getName());
+        Lib.assertTrue(temp != null);
         
         pq[0].waitForAccess(t[2]);
         System.out.println("pq[0].waitForAccess(t[2])");
-        System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
+	Lib.assertTrue(pq[0].waitQueue.size() == 2);
+	Lib.assertTrue(lts[0].priority == 5);
+	Lib.assertTrue(lts[0].effectivePriority == 7);
         
         lts[1].setPriority(3);
         System.out.println("lts[1].setPriority(3)");
-        System.out.println("lts[1] priority is " + lts[1].priority);
-        System.out.println("lts[1] effective priority is " + lts[1].effectivePriority);
-        System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
+        Lib.assertTrue(lts[1].priority == 3);
+	Lib.assertTrue(lts[1].effectivePriority == 3);
+	Lib.assertTrue(lts[0].effectivePriority == 9);
+        
         
         lts[2].setPriority(6);
         System.out.println("lts[2].setPriority(6)");
-        System.out.println("lts[2] priority is " + lts[2].priority);
-        System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
-        System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
+        Lib.assertTrue(lts[2].priority == 6);
+	Lib.assertTrue(lts[2].effectivePriority == 6);
+	Lib.assertTrue(lts[0].effectivePriority == 14);
         
         temp = pq[0].nextThread();
-        System.out.println("pq[0].nextThread()");
-        if (temp == null)
-            System.out.println("nextThread is null");
-        else
-            System.out.println("nextThread  is " + temp.getName());
-        
+        System.out.println("pq[0].nextThread() is " + temp);
+        temp = pq[0].nextThread();
+        System.out.println("pq[0].nextThread() is " + temp);
+        temp = pq[0].nextThread();
+        System.out.println("pq[0].nextThread() is " + temp);
+
+	Lib.assertTrue(lts[0].effectivePriority == 5);
+	Lib.assertTrue(lts[1].effectivePriority == 3);
+	Lib.assertTrue(lts[2].effectivePriority == 6);
+
+	pq[1].acquire(t[0]);
+	Lib.assertTrue(lts[0].effectivePriority == 5);
+	pq[1].waitForAccess(t[1]);
+	Lib.assertTrue(lts[0].effectivePriority == 8);
+	pq[2].acquire(t[1]);
+	Lib.assertTrue(lts[1].effectivePriority == 3);
+	pq[2].waitForAccess(t[2]);
+	Lib.assertTrue(lts[1].effectivePriority == 9);
+	Lib.assertTrue(lts[0].effectivePriority == 14);
+	pq[3].acquire(t[2]);
+	pq[3].waitForAccess(t[3]);
+	Lib.assertTrue(lts[2].effectivePriority == 7);
+	Lib.assertTrue(lts[1].effectivePriority == 10);
+	Lib.assertTrue(lts[0].effectivePriority == 15);
+
+	lts[2].setPriority(100);
+	Lib.assertTrue(lts[2].effectivePriority == 100);
+	Lib.assertTrue(lts[1].effectivePriority == 104);
+	Lib.assertTrue(lts[0].effectivePriority == 109);
+
         System.out.println("lts[2] priority is " + lts[2].priority);
         System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
         System.out.println("prev lock holder effective priority is " + lts[0].effectivePriority);
