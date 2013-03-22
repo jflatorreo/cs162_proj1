@@ -736,7 +736,7 @@ public class UserProcess {
 		int argumentAddress;
 		for (int i=0; i<argCounter; i++) {
 			buffer = new byte[4];
-			bytesRead = readVirtualMemory(argOffset, buffer, 4*i, 4);
+			bytesRead = readVirtualMemory(argOffset+(i*4), buffer);
 			
 			if (bytesRead != 4) //bytesRead not equal to the size of char*
 				return -1;
