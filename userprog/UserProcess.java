@@ -61,9 +61,7 @@ public class UserProcess {
 		//Part I
 		lock.acquire();
 		processID = processCounter++;
-		numUserProcesses++;
 		lock.release();
-
 		openFileList = new OpenFile[MAX_SIZE];
 		openFileList[0] = UserKernel.console.openForReading();
 		openFileList[1] = UserKernel.console.openForWriting();
@@ -99,6 +97,10 @@ public class UserProcess {
 		if (!load(name, args))
 			return false;
 		
+        lock.acquire();
+		numUserProcesses++;
+        lock.release();
+
 		thread = new UThread(this);
 		thread.setName(name).fork();
 
@@ -687,6 +689,11 @@ public class UserProcess {
 		}
 		lock.release(); //critical section end
 		
+        if (this.coff != null) {
+            this.coff.close();
+            this.coff = null;
+        }
+
 		for (int i = 0; i < openFileList.length; i++) { //close all openfiles that this process have
 			if (openFileList[i] != null)
 				handleClose(i);
@@ -696,12 +703,13 @@ public class UserProcess {
 		this.exitStatus = a0;
 		
 		lock.acquire();
-		if (numUserProcesses == 1) { //only one UserProcess left -> terminate kernel
+        numUserProcesses--;
+        lock.release();
+
+		if (numUserProcesses == 0) //only one UserProcess left -> terminate kernel
 			Kernel.kernel.terminate();
-		}
-		numUserProcesses--;
-		lock.release();
-		UThread.finish();
+        else
+            UThread.finish();
 	}
 
 	/**
