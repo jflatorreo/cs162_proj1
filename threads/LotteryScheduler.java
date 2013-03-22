@@ -201,7 +201,10 @@ public class LotteryScheduler extends PriorityScheduler {
         
         temp = pq[0].nextThread();
         System.out.println("pq[0].nextThread()");
-        System.out.println("nextThread == null is: " + (temp == null));
+        if (temp == null)
+            System.out.println("nextThread is null);
+        else
+            System.out.println("nextThread  is " + temp.getName());
         
         System.out.println("lts[2] priority is " + lts[2].priority);
         System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
