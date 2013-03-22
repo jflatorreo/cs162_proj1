@@ -76,7 +76,7 @@ public class LotteryScheduler extends PriorityScheduler {
                 System.out.println("ticketCount is " + ticketCount);
                 ThreadState next = itr.next();
                 System.out.println("thread: " + next.thread.getName());
-                ticketCount += itr.next().getEffectivePriority();
+                ticketCount += next.getEffectivePriority();
             }
             System.out.println("ticketCount is " + ticketCount);
 
