@@ -142,4 +142,41 @@ public class LotteryScheduler extends PriorityScheduler {
         //Added a line to acquire in PriorityScheduler
         //updateEffectivePriority() at the very end of acquire
     }
+    public static void selfTest() {
+        LotteryScheduler ls = new LotteryScheduler();
+        LotteryQueue[] pq = new LotteryQueue[5];
+        KThread[] t = new KThread[5];
+        LotteryThreadState lts= new LotteryThreadState[5];
+        
+        for (int i=0; i < 5; i++)
+            pq[i] = ls.new LotteryQueue(true);
+        for (int i=0; i < 5; i++) {
+            t[i] = new KThread();
+            t[i].setName("thread" + i);
+            lts[i] = ls.getThreadState(t[i]);
+        }
+        
+        Machine.interrupt().disable();
+        
+        System.out.println("===========LotteryScheduler Test============");
+        pq[0].print();
+        lts[0].print();
+        pq[0].acquire(t[0])
+        System.out.println("pq[0].acquire(t[0])");
+        pq[0].print();
+        
+        ts[0].setPriority(5);
+        System.out.println("ts[0].setPriority(5)");
+        pq[0].print():
+        
+        pq[0].waitForAccess(t[1]);
+        System.out.println("pq[0].waitForAccess(t[1])");
+        pq[0].print();
+        
+        ts[1].setPriority(3);
+        System.out.println("ts[1].setPriority(3)");
+        pq[0].print();
+        
+        Machine.interrupt().enable();
+    }
 }
