@@ -739,6 +739,10 @@ public class UserProcess {
 		String filename = readVirtualMemoryString(filenameVirtualAddr, 256);
 		if (filename == null || !filename.endsWith(".coff")) { //invalid filename (no null terminator was found)
             System.out.println("inside 2nd if");
+            if (filename == null)
+                System.out.println("filename == null");
+            if (!filename.endsWith(".coff"))
+                System.out.println("!filename.endsWith('.coff')");
 			return -1;
         }
 
