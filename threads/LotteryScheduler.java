@@ -75,6 +75,7 @@ public class LotteryScheduler extends PriorityScheduler {
             while(itr.hasNext()) {
                 ticketCount += itr.next().getEffectivePriority();
             }
+            System.out.println("ticketCount is " + ticketCount);
             if(ticketCount > 0) {
                 int num = randomGenerator.nextInt(ticketCount);
                 itr = this.waitQueue.iterator();
