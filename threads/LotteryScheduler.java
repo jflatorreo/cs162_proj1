@@ -164,10 +164,11 @@ public class LotteryScheduler extends PriorityScheduler {
         System.out.println("priority defaults to " + lts[0].effectivePriority);
         pq[0].acquire(t[0]);
         System.out.println("pq[0].acquire(t[0])");
+        System.out.println("lock holder priority is " + pq[0].holder.effectivePriority);
         pq[0].print();
         
         lts[0].setPriority(5);
-        System.out.println("ts[0].setPriority(5)");
+        System.out.println("lock holder priority is " + lts[0].effectivePriority);
         pq[0].print();
         
         pq[0].waitForAccess(t[1]);
