@@ -2,6 +2,7 @@ package nachos.userprog;
 
 import nachos.machine.*;
 import nachos.threads.*;
+import nachos.userprog.*;
 
 import java.io.EOFException;
 import java.util.HashMap;
@@ -173,41 +174,55 @@ public class UserProcess {
 	 *			the array.
 	 * @return	the number of bytes successfully transferred.
 	 */
-	public int readVirtualMemory(int vaddr, byte[] data, int offset, int length) {
+	public int readVirtualMemory(int vaddr, byte[] data, int offset,
+			int length) {
+		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
+
+		//make sure that virtual address is valid for this process' virtual address space
+		if (vaddr < 0)
+			vaddr = 0;
+		if (length > Machine.processor().makeAddress(numPages-1, pageSize-1) - vaddr)
+			length = Machine.processor().makeAddress(numPages-1, pageSize-1) - vaddr;
+
 		byte[] memory = Machine.processor().getMemory();
-		System.out.println("Entered readVMS vaddr = " + vaddr + ", data=" + data + ", offset=" + offset + ", length=" + length);
 
-		//total amount of pages read/written
-		int totalAmount = 0;
-
-		while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
-			//if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
-			int vpn = vaddr/pageSize;
-			
-			//if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
-			if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
-				return totalAmount;
+		int firstVirtPage = Machine.processor().pageFromAddress(vaddr);
+		int lastVirtPage = Machine.processor().pageFromAddress(vaddr+length);
+		int numBytesTransferred = 0;
+		for (int i=firstVirtPage; i<=lastVirtPage; i++){
+			if (!pageTable[i].valid)
+				break; //stop reading, return numBytesTransferred for whatever we've written so far
+			int firstVirtAddress = Machine.processor().makeAddress(i, 0);
+			int lastVirtAddress = Machine.processor().makeAddress(i, pageSize-1);
+			int offset1;
+			int offset2;
+			//virtual page is in the middle, copy entire page (most common case)
+			if (vaddr <= firstVirtAddress && vaddr+length >= lastVirtAddress){
+				offset1 = 0;
+				offset2 = pageSize - 1;
 			}
-			//sets the page to used and dirty
-			pageTable[vpn].dirty = true;
-			pageTable[vpn].used = true;
-			int ppn = pageTable[vpn].ppn;
-			int byteStart = vaddr%pageSize;
-			
-			//copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
-			int amount = Math.min((vpn+1)*pageSize - vaddr, length);
-
-			int paddr = ppn*pageSize + byteStart;
-
-			//write to the physical page corresponding to the current virtual page
-			System.arraycopy(memory, paddr, data, offset, amount);
-			offset += amount;
-			vaddr += amount;
-			length -= amount;
-			totalAmount += amount;
-		}
-
-		return totalAmount;
+			//virtual page is first to be transferred
+			else if (vaddr > firstVirtAddress && vaddr+length >= lastVirtAddress){
+				offset1 = vaddr - firstVirtAddress;
+				offset2 = pageSize - 1;
+			}
+			//virtual page is last to be transferred
+			else if (vaddr <= firstVirtAddress && vaddr+length < lastVirtAddress){
+				offset1 = 0;
+				offset2 = (vaddr + length) - firstVirtAddress;
+			}
+			//only need inner chunk of a virtual page (special case)
+			else { //(vaddr > firstVirtAddress && vaddr+length < lastVirtAddress)
+				offset1 = vaddr - firstVirtAddress;
+				offset2 = (vaddr + length) - firstVirtAddress;
+			}
+			int firstPhysAddress = Machine.processor().makeAddress(pageTable[i].ppn, offset1);
+			//int lastPhysAddress = Machine.processor().makeAddress(pageTable[i].ppn, offset2);
+			System.arraycopy(memory, firstPhysAddress, data, offset+numBytesTransferred, offset2-offset1);
+			numBytesTransferred += (offset2-offset1);
+			pageTable[i].used = true;
+		}		
+		return numBytesTransferred;
 	}
 
 	/**
@@ -238,43 +253,56 @@ public class UserProcess {
 	 * @return	the number of bytes successfully transferred.
 	 */
 
-	public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
+	public int writeVirtualMemory(int vaddr, byte[] data, int offset,
+			int length) {
 		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
-		System.out.println("Entered writeVM vaddr = " + vaddr + ", data=" + data + ", offset="+ offset + ", length =" + length);
 
 		byte[] memory = Machine.processor().getMemory();
 
-		//total amount of pages read/written
-		int totalAmount = 0;
+		//make sure that virtual address is valid for this process' virtual address space
+		if (vaddr < 0)
+			vaddr = 0;
+		if (length > Machine.processor().makeAddress(numPages-1, pageSize-1) - vaddr)
+			length = Machine.processor().makeAddress(numPages-1, pageSize-1) - vaddr;
 
-		while((length>0)&&(vaddr<numPages*pageSize)&&(vaddr > 0)){
-			//if the current virtual address being looked at is out of the scope of the pageTable we return the bytes we've written up until then
-			int vpn = vaddr/pageSize;
-			
-			//if a readOnly or invalid page is encountered then we return the bytes we've written up until then since we cannot write to this page
-			if(!pageTable[vpn].valid || pageTable[vpn].readOnly){
-				return totalAmount;
+		int firstVirtPage = Machine.processor().pageFromAddress(vaddr);
+		int lastVirtPage = Machine.processor().pageFromAddress(vaddr+length);
+		int numBytesTransferred = 0;
+		for (int i=firstVirtPage; i<=lastVirtPage; i++){
+			if (!pageTable[i].valid || pageTable[i].readOnly)
+				break; //stop writing, return numBytesTransferred for whatever we've written so far
+			int firstVirtAddress = Machine.processor().makeAddress(i, 0);
+			int lastVirtAddress = Machine.processor().makeAddress(i, pageSize-1);
+			int offset1;
+			int offset2;
+			//virtual page is in the middle, copy entire page (most common case)
+			if (vaddr <= firstVirtAddress && vaddr+length >= lastVirtAddress){
+				offset1 = 0;
+				offset2 = pageSize - 1;
 			}
-			//sets the page to used and dirty
-			pageTable[vpn].dirty = true;
-			pageTable[vpn].used = true;
-			int ppn = pageTable[vpn].ppn;
-			int byteStart = vaddr%pageSize;
-
-			//copy either upto the page or however many bytes are left - amount is number of bytes copied to fill current page
-			int amount = Math.min((vpn+1)*pageSize - vaddr, length);
-
-			int paddr = ppn*pageSize + byteStart;
-
-			//write to the physical page corresponding to the current virtual page
-			System.arraycopy(data, offset, memory, paddr, amount);
-			offset += amount;
-			vaddr += amount;
-			length -= amount;
-			totalAmount += amount;
+			//virtual page is first to be transferred
+			else if (vaddr > firstVirtAddress && vaddr+length >= lastVirtAddress){
+				offset1 = vaddr - firstVirtAddress;
+				offset2 = pageSize - 1;
+			}
+			//virtual page is last to be transferred
+			else if (vaddr <= firstVirtAddress && vaddr+length < lastVirtAddress){
+				offset1 = 0;
+				offset2 = (vaddr + length) - firstVirtAddress;
+			}
+			//only need inner chunk of a virtual page (special case)
+			else { //(vaddr > firstVirtAddress && vaddr+length < lastVirtAddress)
+				offset1 = vaddr - firstVirtAddress;
+				offset2 = (vaddr + length) - firstVirtAddress;
+			}
+			int firstPhysAddress = Machine.processor().makeAddress(pageTable[i].ppn, offset1);
+			//int lastPhysAddress = Machine.processor().makeAddress(pageTable[i].ppn, offset2);
+			System.arraycopy(data, offset+numBytesTransferred, memory, firstPhysAddress, offset2-offset1);
+			numBytesTransferred += (offset2-offset1);
+			pageTable[i].used = pageTable[i].dirty = true;
 		}
 
-		return totalAmount;
+		return numBytesTransferred;
 	}
 
 	/**
