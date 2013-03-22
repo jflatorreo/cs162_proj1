@@ -409,7 +409,7 @@ public class UserProcess {
 	    UserKernel.lock.acquire();
         for (int i=0; i<numPages; i++) {
             if (pageTable[i] != null)
-                UserKernel.pages.add(Integer(pageTable[i].ppn));
+                UserKernel.pages.add(new Integer(pageTable[i].ppn));
         }
         UserKernel.lock.release();
         coff.close();
