@@ -133,7 +133,7 @@ public class UserProcess {
 	 */
 	public String readVirtualMemoryString(int vaddr, int maxLength) {
 		Lib.assertTrue(maxLength >= 0);
-
+		System.out.println("Entered readVMString vaddr = " + vaddr + ", maxLength = " + maxLength);
 		byte[] bytes = new byte[maxLength+1];
 
 		int bytesRead = readVirtualMemory(vaddr, bytes);
@@ -174,6 +174,7 @@ public class UserProcess {
 	 */
 	public int readVirtualMemory(int vaddr, byte[] data, int offset, int length) {
 		byte[] memory = Machine.processor().getMemory();
+		System.out.println("Entered readVMS vaddr = " + vaddr + ", data=" + data + ", offset=" + offset + ", length=" + length);
 
 		//total amount of pages read/written
 		int totalAmount = 0;
@@ -238,6 +239,7 @@ public class UserProcess {
 
 	public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
 		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
+		System.out.println("Entered writeVM vaddr = " + vaddr + ", data=" + data + ", offset="+ offset + ", length =" + length);
 
 		byte[] memory = Machine.processor().getMemory();
 
