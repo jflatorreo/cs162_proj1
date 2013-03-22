@@ -202,7 +202,7 @@ public class LotteryScheduler extends PriorityScheduler {
         temp = pq[0].nextThread();
         System.out.println("pq[0].nextThread()");
         if (temp == null)
-            System.out.println("nextThread is null);
+            System.out.println("nextThread is null");
         else
             System.out.println("nextThread  is " + temp.getName());
         
