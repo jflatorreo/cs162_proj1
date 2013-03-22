@@ -731,12 +731,16 @@ public class UserProcess {
 	 */
 	private int handleExec(int filenameVirtualAddr, int argCounter, int argOffset) {
         System.out.println("Entering handleExec!!!!");
-		if (filenameVirtualAddr < 0 || argCounter < 0)
+		if (filenameVirtualAddr < 0 || argCounter < 0) {
+            System.out.println("inside 1st if");
 			return -1;
+        }
 
 		String filename = readVirtualMemoryString(filenameVirtualAddr, 256);
-		if (filename == null || !filename.endsWith(".coff")) //invalid filename (no null terminator was found)
+		if (filename == null || !filename.endsWith(".coff")) { //invalid filename (no null terminator was found)
+            System.out.println("inside 2nd if");
 			return -1;
+        }
 
 		String[] arguments = new String[argCounter]; //empty array of String argument
 		byte[] buffer;
@@ -746,13 +750,17 @@ public class UserProcess {
 			buffer = new byte[4];
 			bytesRead = readVirtualMemory(argOffset+(i*4), buffer);
 			
-			if (bytesRead != 4) //bytesRead not equal to the size of char*
+			if (bytesRead != 4) { //bytesRead not equal to the size of char*
+                System.out.println("inside 3rd if");
 				return -1;
+            }
 			argumentAddress = Lib.bytesToInt(buffer, 0);
 			arguments[i] = readVirtualMemoryString(argumentAddress, 256);
 			
-			if (arguments[i] == null) //invalid file(argument) name
+			if (arguments[i] == null) { //invalid file(argument) name
+                System.out.println("inside 4th if");
 				return -1;
+            }
 		}
 
         //TESTING
