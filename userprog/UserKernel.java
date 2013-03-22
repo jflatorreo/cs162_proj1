@@ -9,9 +9,14 @@ import java.util.LinkedList;
  * A kernel that can support multiple user processes.
  */
 public class UserKernel extends ThreadedKernel {
-	/**
-	 * Allocate a new user kernel.
-	 */
+	//Fields
+	/** Globally accessible reference to the synchronized console. */
+	public static SynchConsole console;
+	private static Coff dummy1 = null; // dummy variables to make javac smarter
+    public static LinkedList pages;
+	public static Lock pagesLock;
+
+	//Constructor
 	public UserKernel() {
 		super();
 	}
@@ -22,20 +27,17 @@ public class UserKernel extends ThreadedKernel {
 	 */
 	public void initialize(String[] args) {
 		super.initialize(args);
-
 		console = new SynchConsole(Machine.console());
-
-		Machine.processor().setExceptionHandler(new Runnable() {
+        
+        pages = new LinkedList<Integer>();
+        for (int i = 0; i<Machine.processor().getNumPhysPages(); i++){
+            pages.add(new Integer(i));
+        }
+        pagesLock = new Lock();
+	
+    	Machine.processor().setExceptionHandler(new Runnable() {
 			public void run() { exceptionHandler(); }
 		});
-
-		//populate the availablePages list with all physical pages in memory
-		availablePages = new LinkedList<Integer>();
-		int numPhysPages = Machine.processor().getNumPhysPages();
-		for(Integer i=0; i<numPhysPages; i++)
-			availablePages.add(i);
-
-		lock = new Lock();
 	}
 
 	/**
@@ -43,19 +45,17 @@ public class UserKernel extends ThreadedKernel {
 	 */	
 	public void selfTest() {
 		super.selfTest();
-
-		//System.out.println("Num phys pages: " + availablePages.size());
+	
 		System.out.println("Testing the console device. Typed characters");
 		System.out.println("will be echoed until q is typed.");
-
+	
 		char c;
-
+	
 		do {
 			c = (char) console.readByte(true);
 			console.writeByte(c);
-		}
-		while (c != 'q');
-
+		} while (c != 'q');
+	
 		System.out.println("");
 	}
 
@@ -67,7 +67,7 @@ public class UserKernel extends ThreadedKernel {
 	public static UserProcess currentProcess() {
 		if (!(KThread.currentThread() instanceof UThread))
 			return null;
-
+		
 		return ((UThread) KThread.currentThread()).process;
 	}
 
@@ -86,7 +86,7 @@ public class UserKernel extends ThreadedKernel {
 	 */
 	public void exceptionHandler() {
 		Lib.assertTrue(KThread.currentThread() instanceof UThread);
-
+	
 		UserProcess process = ((UThread) KThread.currentThread()).process;
 		int cause = Machine.processor().readRegister(Processor.regCause);
 		process.handleException(cause);
@@ -101,12 +101,12 @@ public class UserKernel extends ThreadedKernel {
 	 */
 	public void run() {
 		super.run();
-
+	
 		UserProcess process = UserProcess.newUserProcess();
-
+		
 		String shellProgram = Machine.getShellProgramName();	
 		Lib.assertTrue(process.execute(shellProgram, new String[] { }));
-
+	
 		KThread.currentThread().finish();
 	}
 
@@ -116,16 +116,4 @@ public class UserKernel extends ThreadedKernel {
 	public void terminate() {
 		super.terminate();
 	}
-
-	/** Globally accessible reference to the synchronized console. */
-	public static SynchConsole console;
-
-	/** Globally accessible list of free physical pages in memory. */
-	public static LinkedList<Integer> availablePages;
-
-	/** Lock for accessing the availablePages list */
-	public static Lock lock;
-
-	// dummy variables to make javac smarter
-	private static Coff dummy1 = null;
 }
