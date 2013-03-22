@@ -196,6 +196,7 @@ public class LotteryScheduler extends PriorityScheduler {
         
         lts[1].setPriority(2);
         System.out.println("lts[1].setPriority(2)");
+        System.out.println("lts[1] effective priority is " + lts[1].effectivePriority);
         System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
         
         Machine.interrupt().enable();
