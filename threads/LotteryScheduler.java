@@ -147,7 +147,7 @@ public class LotteryScheduler extends PriorityScheduler {
         LotteryScheduler ls = new LotteryScheduler();
         LotteryQueue[] pq = new LotteryQueue[5];
         KThread[] t = new KThread[5];
-        LotteryThreadState lts[] = new LotteryThreadState[5];
+        ThreadState lts[] = new LotteryThreadState[5];
         
         for (int i=0; i < 5; i++)
             pq[i] = ls.new LotteryQueue(true);
