@@ -70,15 +70,15 @@ public class LotteryScheduler extends PriorityScheduler {
 		  System.out.println("PROBLEM HERE");
 		} else {
 		  if(ts.pqWant != null) {
-		    pqWant.updateEntry(ts, newEffectivePriority);
+		    ts.pqWant.updateEntry(ts, newEffectivePriority);
 		  } else {
 		    ts.effectivePriority = newEffectivePriority;	
 		  }
 		}		
 	    }
             //propagate
-            if(difference != 0)
-                ts.propagate(difference);
+            //if(difference != 0)
+            //    ts.propagate(difference);
 	}
         //DONE!!!!!
         protected ThreadState pickNextThread() {

@@ -77,8 +77,8 @@ public class LotteryScheduler extends PriorityScheduler {
 		}		
 	    }
             //propagate
-            if(difference != 0)
-                ts.propagate(difference);
+            //if(difference != 0)
+            //    ts.propagate(difference);
 	}
         //DONE!!!!!
         protected ThreadState pickNextThread() {
@@ -87,12 +87,12 @@ public class LotteryScheduler extends PriorityScheduler {
             int ticketCount = 0;
             Iterator<ThreadState> itr = this.waitQueue.iterator();
             while(itr.hasNext()) {
-                System.out.println("ticketCount is " + ticketCount);
+                //System.out.println("ticketCount is " + ticketCount);
                 ThreadState next = itr.next();
-                System.out.println("thread: " + next.thread.getName());
+                //System.out.println("thread: " + next.thread.getName());
                 ticketCount += next.getEffectivePriority();
             }
-            System.out.println("ticketCount is " + ticketCount);
+            //System.out.println("ticketCount is " + ticketCount);
 
             if(ticketCount > 0) {
                 int num = randomGenerator.nextInt(ticketCount);
@@ -181,7 +181,7 @@ public class LotteryScheduler extends PriorityScheduler {
             t[i].setName("thread" + i);
             lts[i] = ls.getThreadState(t[i]);
         }
-        
+        /*
         Machine.interrupt().disable();
         
         System.out.println("===========LotteryScheduler Test============");
@@ -240,7 +240,7 @@ public class LotteryScheduler extends PriorityScheduler {
         temp = pq[0].nextThread();
         System.out.println("pq[0].nextThread()");
         System.out.println("nextThread == null is: " + (temp == null));
-        */
+        *//*
         ThreadState temp2 = pq[0].pickNextThread();
         System.out.println("pq[0].pickNextThread()");
         System.out.println("pickNextThread == null is: " + (temp2 == null));
@@ -250,5 +250,6 @@ public class LotteryScheduler extends PriorityScheduler {
         System.out.println("nextThread == null is: " + (temp == null));
         
         Machine.interrupt().enable();
+*/
     }
 }

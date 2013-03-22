@@ -730,6 +730,7 @@ public class UserProcess {
 	 * @param a2 argv (char *argv[])
 	 */
 	private int handleExec(int filenameVirtualAddr, int argCounter, int argOffset) {
+        System.out.println("Entering handleExec!!!!");
 		if (filenameVirtualAddr < 0 || argCounter < 0)
 			return -1;
 
