@@ -412,7 +412,8 @@ public class UserProcess {
                 UserKernel.pages.add(new Integer(pageTable[i].ppn));
         }
         UserKernel.lock.release();
-        coff.close();
+        if (coff != null)
+            coff.close();
     }	
 
 	/**
