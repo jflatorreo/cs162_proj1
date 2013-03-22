@@ -309,7 +309,9 @@ public class PriorityScheduler extends Scheduler {
 			this.pqHave.add(pq);
 			
       //Adjust the state of pq
+            System.out.println("pq.waitQueue.contains(this) == " + pq.waitQueue.contains(this));
 			pq.waitQueue.remove(this);
+            System.out.println("pq.waitQueue.contains(this) == " + pq.waitQueue.contains(this));
 			pq.holder = this;
             this.updateEffectivePriority();
 		}	

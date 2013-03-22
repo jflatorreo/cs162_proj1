@@ -211,7 +211,7 @@ public class LotteryScheduler extends PriorityScheduler {
         
         System.out.println("lts[2] priority is " + lts[2].priority);
         System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
-        System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
+        System.out.println("prev lock holder effective priority is " + lts[0].effectivePriority);
         /*
         temp = pq[0].nextThread();
         System.out.println("pq[0].nextThread()");
