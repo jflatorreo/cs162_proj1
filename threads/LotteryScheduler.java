@@ -66,7 +66,6 @@ public class LotteryScheduler extends PriorityScheduler {
             if(difference != 0)
                 ts.propagate(difference);
 		}
-        
         //DONE!!!!!
         protected ThreadState pickNextThread() {
             //Set up an Iterator and go through it
@@ -74,16 +73,18 @@ public class LotteryScheduler extends PriorityScheduler {
             int ticketCount = 0;
             Iterator<ThreadState> itr = this.waitQueue.iterator();
             while(itr.hasNext()) {
-                ticketCount = itr.next().getEffectivePriority();
+                ticketCount += itr.next().getEffectivePriority();
             }
-            int num = randomGenerator.nextInt(ticketCount);
-            itr = this.waitQueue.iterator();
-            ThreadState temp;
-            while(itr.hasNext()) {
-                temp = itr.next();
-                num -= temp.effectivePriority;
-                if(num <= 0){
-                    return temp;
+            if(ticketCount > 0) {
+                int num = randomGenerator.nextInt(ticketCount);
+                itr = this.waitQueue.iterator();
+                ThreadState temp;
+                while(itr.hasNext()) {
+                    temp = itr.next();
+                    num -= temp.effectivePriority;
+                    if(num <= 0){
+                        return temp;
+                    }
                 }
             }
             return null;
