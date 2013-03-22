@@ -132,7 +132,7 @@ public class LotteryScheduler extends PriorityScheduler {
                 if (pqWant != null) {
                     pqWant.waitQueue.remove(this);
                     this.effectivePriority = sumPriority;
-                    pqwant.waitQueue.add(this);
+                    pqWant.waitQueue.add(this);
                     this.propagate(difference);
                 } else {
                     this.effectivePriority = sumPriority;
