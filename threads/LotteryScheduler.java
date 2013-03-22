@@ -73,9 +73,11 @@ public class LotteryScheduler extends PriorityScheduler {
             int ticketCount = 0;
             Iterator<ThreadState> itr = this.waitQueue.iterator();
             while(itr.hasNext()) {
-                ticketCount += itr.next().getEffectivePriority();
                 System.out.println("ticketCount is " + ticketCount);
+                ticketCount += itr.next().getEffectivePriority();
             }
+            System.out.println("ticketCount is " + ticketCount);
+
             if(ticketCount > 0) {
                 int num = randomGenerator.nextInt(ticketCount);
                 itr = this.waitQueue.iterator();
@@ -194,6 +196,10 @@ public class LotteryScheduler extends PriorityScheduler {
         System.out.println("lts[2] priority is " + lts[2].priority);
         System.out.println("lts[2] effective priority is " + lts[2].effectivePriority);
         System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
+        
+        temp = pq[0].nextThread();
+        System.out.println("pq[0].nextThread()");
+        System.out.println("nextThread == null is: " + (temp == null));
         
         temp = pq[0].nextThread();
         System.out.println("pq[0].nextThread()");
