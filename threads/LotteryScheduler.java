@@ -181,7 +181,10 @@ public class LotteryScheduler extends PriorityScheduler {
         System.out.println("lock holder effective priority is " + lts[0].effectivePriority);
         KThread temp = pq[0].pickNextThread().thread;
         System.out.println("pq[0].pickNextThread()");
-        System.out.println("nextThread == null is: " + (temp == null));
+        if (temp == null)
+            System.out.println("nextThread is null");
+        else
+            System.out.println("nextThread  is " + temp.getName());
         
         pq[0].waitForAccess(t[2]);
         System.out.println("pq[0].waitForAccess(t[2])");
