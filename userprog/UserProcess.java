@@ -53,11 +53,12 @@ public class UserProcess {
 
 	//Constructor
 	public UserProcess() {
+        /*
 		int numPhysPages = Machine.processor().getNumPhysPages();
 		pageTable = new TranslationEntry[numPhysPages];
 		for (int i=0; i<numPhysPages; i++)
 			pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
-		
+		*/
 		//Initialize new fields
 		//Part I
 		lock.acquire();
@@ -385,7 +386,7 @@ public class UserProcess {
 		UserKernel.pagesLock.release();
 		
 		//initialize the pageTable
-		//pageTable = new TranslationEntry[numPages];
+		pageTable = new TranslationEntry[numPages];
 		int additionalPage = 0;
 		//the following is a critical section since we only want to modify the list of free pages one process at a time
 		UserKernel.pagesLock.acquire();
