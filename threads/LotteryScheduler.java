@@ -279,7 +279,7 @@ public class LotteryScheduler extends Scheduler {
         
         //DONE!!!!
         public void updateEffectivePriority() {
-        	System.out.println("updateEffectivePriority");
+        	System.out.println("uEP");
             //Calculate new effectivePriority checking possible donations from threads that are waiting for me
             int sumPriority = this.priority;
             for (LotteryQueue pq: this.pqHave)
@@ -291,15 +291,12 @@ public class LotteryScheduler extends Scheduler {
             
             //If there is a change in priority, update and propagate to other owners
             if (sumPriority != this.effectivePriority) {
-                //int difference = sumPriority - this.effectivePriority;
+                int difference = sumPriority - this.effectivePriority;
                 if (pqWant != null) {
-                	((LotteryQueue)pqWant).updateEntry(this, sumPriority);
-                	/*
                     pqWant.waitQueue.remove(this);
                     this.effectivePriority = sumPriority;
                     pqWant.waitQueue.add(this);
                     this.propagate(difference);
-                    */
                 } else {
                     this.effectivePriority = sumPriority;
                 }
@@ -307,7 +304,7 @@ public class LotteryScheduler extends Scheduler {
         }
         //DONE!!!!
         public void waitForAccess(LotteryQueue pq) {
-        	System.out.println("wFA");
+        	System.out.println("wFA" + this.toString().substring(44));
 			this.pqWant = pq;
 			//this.time = Machine.timer().getTime();
 			this.time = TickTimer++;
@@ -452,6 +449,6 @@ public class LotteryScheduler extends Scheduler {
         //System.out.println("pq[0].nextThread()");
         //System.out.println("nextThread == null is: " + (temp == null));
         
-        Machine.interrupt().enable();*/	
+        Machine.interrupt().enable();*/
     }
 }
