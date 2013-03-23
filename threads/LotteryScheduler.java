@@ -72,7 +72,7 @@ public class LotteryScheduler extends PriorityScheduler {
 			  //System.out.println("PROBLEM HERE");
 		    	} else {
 		    		if(ts.pqWant != null) {
-		    			ts.pqWant.updateEntry(ts, newEffectivePriority);
+		    			((LotteryQueue)(ts.pqWant)).updateEntry(ts, newEffectivePriority);
 		    		} else {
 		    			ts.effectivePriority = newEffectivePriority;	
 		    		}
@@ -110,6 +110,20 @@ public class LotteryScheduler extends PriorityScheduler {
             }
             return null;
         }
+        
+		public KThread nextThread() {
+			Lib.assertTrue(Machine.interrupt().disabled());
+			ThreadState newHolder = this.pickNextThread(); //return null if waitQueue is empty
+
+			if (newHolder != null) { //When waitQueue is not empty
+				this.acquire(newHolder.thread);
+				return newHolder.thread;
+			}
+			else { //When waitQueue is empty
+				this.holder = null;
+			  return null;
+			}
+		}        
     }
     
     
@@ -127,7 +141,7 @@ public class LotteryScheduler extends PriorityScheduler {
             if(pqWant != null) {
                 if(pqWant.transferPriority == true) {
                     if(pqWant.holder != null)
-                        pqWant.updateEntry(pqWant.holder, pqWant.holder.effectivePriority+difference);
+                        ((LotteryQueue)pqWant).updateEntry(pqWant.holder, pqWant.holder.effectivePriority+difference);
                 }
             }
         }
@@ -195,6 +209,7 @@ public class LotteryScheduler extends PriorityScheduler {
     }
     
     public static void selfTest() {
+    	/*
         LotteryScheduler ls = new LotteryScheduler();
         LotteryQueue[] pq = new LotteryQueue[5];
         KThread[] t = new KThread[5];
@@ -301,6 +316,6 @@ public class LotteryScheduler extends PriorityScheduler {
         //System.out.println("pq[0].nextThread()");
         //System.out.println("nextThread == null is: " + (temp == null));
         
-        Machine.interrupt().enable();
+        Machine.interrupt().enable();*/
     }
 }
