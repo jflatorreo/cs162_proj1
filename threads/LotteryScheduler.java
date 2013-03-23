@@ -52,7 +52,7 @@ public class LotteryScheduler extends Scheduler {
 
 		//Constructor
 		public LotteryScheduler() {
-			System.out.println("LotteryScheduler");
+			System.out.println("LS");
 	  }
 
 		//Helper Methods
@@ -128,7 +128,7 @@ public class LotteryScheduler extends Scheduler {
         //In terms of picking the next thread linear in the number of threads on the queue is fine
 		//Constructor
 		LotteryQueue(boolean transferPriority) {
-			System.out.println("LotteryQueue");
+			System.out.println("LQ");
 			this.transferPriority = transferPriority;
 			this.holder = null;
 			waitQueue = new TreeSet<ThreadState>(new Comparator<ThreadState>() {
@@ -143,8 +143,8 @@ public class LotteryScheduler extends Scheduler {
 		}
         
         public void updateEntry(ThreadState ts, int newEffectivePriority) {
-        	System.out.println("updateEntry...");
-            int difference = newEffectivePriority - this.holder.getEffectivePriority();
+        	System.out.println("uE");
+            int difference = newEffectivePriority - ts.getEffectivePriority();
             if(this.waitQueue.remove(ts)) {
             	ts.effectivePriority = newEffectivePriority;
             	this.waitQueue.add(ts);
@@ -169,7 +169,7 @@ public class LotteryScheduler extends Scheduler {
         
         //DONE!!!!!
         protected ThreadState pickNextThread() {
-        	System.out.println("pickNextThread");
+        	System.out.println("piNT");
             //Set up an Iterator and go through it
             Random randomGenerator = new Random();
             int ticketCount = 0;
@@ -198,18 +198,18 @@ public class LotteryScheduler extends Scheduler {
         }
         
 		public KThread nextThread() {
-			System.out.println("NextThread is called on a resource");
+			System.out.println("NT");
 			Lib.assertTrue(Machine.interrupt().disabled());
 			ThreadState newHolder = this.pickNextThread(); //return null if waitQueue is empty
 
 			if (newHolder != null) { //When waitQueue is not empty
 				this.acquire(newHolder.thread);
-				System.out.println("NT - returning newHolder.thread");
+				System.out.println("NT-rt-1st");
 				return newHolder.thread;
 			}
 			else { //When waitQueue is empty
 				this.holder = null;
-				System.out.println("NT - returning NULL");				
+				System.out.println("NT-rt-2nd");				
 			    return null;
 			}
 		}        
@@ -231,7 +231,7 @@ public class LotteryScheduler extends Scheduler {
 		
 		//Constructor
 		public ThreadState(KThread thread) {
-			System.out.println("ThreadState Constructor");
+			System.out.println("TS Const");
 			this.thread = thread;
 			this.pqHave = new ArrayList<LotteryQueue>();
 			this.setPriority(priorityDefault);
@@ -307,7 +307,7 @@ public class LotteryScheduler extends Scheduler {
         }
         //DONE!!!!
         public void waitForAccess(LotteryQueue pq) {
-        	System.out.println("waitForAccesss");
+        	System.out.println("wFA");
 			this.pqWant = pq;
 			//this.time = Machine.timer().getTime();
 			this.time = TickTimer++;
@@ -320,7 +320,7 @@ public class LotteryScheduler extends Scheduler {
 		}
         
         public void acquire(LotteryQueue pq) {
-        	System.out.println("Acquire");
+        	System.out.println("Aq");
 			//Adjust the state of prev pq holder (ThreadState)
 			ThreadState prevHolder = pq.holder;
 			if (prevHolder != null) {
@@ -395,6 +395,7 @@ public class LotteryScheduler extends Scheduler {
         System.out.println("lts[1].setPriority(3)");
         Lib.assertTrue(lts[1].priority == 3);
 	Lib.assertTrue(lts[1].effectivePriority == 3);
+	System.out.println("lts[0].ep = " + lts[0].effectivePriority);
 	Lib.assertTrue(lts[0].effectivePriority == 9);
         
         
@@ -451,6 +452,6 @@ public class LotteryScheduler extends Scheduler {
         //System.out.println("pq[0].nextThread()");
         //System.out.println("nextThread == null is: " + (temp == null));
         
-        Machine.interrupt().enable(); */
+        Machine.interrupt().enable();*/	
     }
 }
