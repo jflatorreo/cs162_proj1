@@ -204,12 +204,12 @@ public class LotteryScheduler extends Scheduler {
 
 			if (newHolder != null) { //When waitQueue is not empty
 				this.acquire(newHolder.thread);
-				System.out.println("NT-rt-1st");
+				System.out.println("NT-rt-1-"+ newHolder.toString().substring(44));
 				return newHolder.thread;
 			}
 			else { //When waitQueue is empty
 				this.holder = null;
-				System.out.println("NT-rt-2nd");				
+				System.out.println("NT-rt-2");				
 			    return null;
 			}
 		}        
@@ -375,7 +375,7 @@ public class LotteryScheduler extends Scheduler {
         System.out.println("pq[0].waitForAccess(t[1])");
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 6);
-
+updateEffectivePriority
         Lib.assertTrue(pq[0].waitQueue.size() == 1);
         KThread temp = pq[0].pickNextThread().thread;
         System.out.println("pq[0].pickNextThread()");
