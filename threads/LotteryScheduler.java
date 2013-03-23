@@ -1,6 +1,8 @@
 package nachos.threads;
 
 import nachos.machine.*;
+import nachos.threads.PriorityScheduler.PriorityQueue;
+import nachos.threads.PriorityScheduler.ThreadState;
 
 import java.util.Random;
 import java.util.TreeSet;
@@ -61,25 +63,25 @@ public class LotteryScheduler extends PriorityScheduler {
         public void updateEntry(ThreadState ts, int newEffectivePriority) {
             int difference = newEffectivePriority - ts.getEffectivePriority();
             if(this.waitQueue.remove(ts)) {
-	   	ts.effectivePriority = newEffectivePriority;
+            	ts.effectivePriority = newEffectivePriority;
             	this.waitQueue.add(ts);
-		if(difference != 0)
-		  ts.propagate(difference);
-	    } else {
-		if(holder != ts) {
-		  //System.out.println("PROBLEM HERE");
-		} else {
-		  if(ts.pqWant != null) {
-		    ts.pqWant.updateEntry(ts, newEffectivePriority);
-		  } else {
-		    ts.effectivePriority = newEffectivePriority;	
-		  }
-		}		
-	    }
+            	if(difference != 0)
+            		((LotteryThreadState)(ts)).propagate(difference);
+		    } else {
+		    	if(holder != ts) {
+			  //System.out.println("PROBLEM HERE");
+		    	} else {
+		    		if(ts.pqWant != null) {
+		    			ts.pqWant.updateEntry(ts, newEffectivePriority);
+		    		} else {
+		    			ts.effectivePriority = newEffectivePriority;	
+		    		}
+		    	}		
+		    }
             //propagate
             //if(difference != 0)
             //    ts.propagate(difference);
-	}
+        }
         //DONE!!!!!
         protected ThreadState pickNextThread() {
             //Set up an Iterator and go through it
@@ -109,6 +111,8 @@ public class LotteryScheduler extends PriorityScheduler {
             return null;
         }
     }
+    
+    
     protected class LotteryThreadState extends ThreadState {
         public LotteryThreadState(KThread thread) {
             super(thread);
@@ -140,12 +144,15 @@ public class LotteryScheduler extends PriorityScheduler {
             
             //If there is a change in priority, update and propagate to other owners
             if (sumPriority != this.effectivePriority) {
-                int difference = sumPriority - this.effectivePriority;
+                //int difference = sumPriority - this.effectivePriority;
                 if (pqWant != null) {
+                	((LotteryQueue)pqWant).updateEntry(this, sumPriority);
+                	/*
                     pqWant.waitQueue.remove(this);
                     this.effectivePriority = sumPriority;
                     pqWant.waitQueue.add(this);
                     this.propagate(difference);
+                    */
                 } else {
                     this.effectivePriority = sumPriority;
                 }
@@ -160,12 +167,31 @@ public class LotteryScheduler extends PriorityScheduler {
 			//Propagate this ThreadState's effectivePriority to holder of pq
             if (pq.transferPriority == true) {
                 if(pq.holder != null)
-                    pq.updateEntry(pq.holder, pq.holder.effectivePriority+this.effectivePriority);
+                    ((LotteryQueue)pq).updateEntry(pq.holder, pq.holder.effectivePriority+this.effectivePriority);
             }
-            
 		}
-        //Added a line to acquire in PriorityScheduler
-        //updateEffectivePriority() at the very end of acquire
+        
+        public void acquire(PriorityQueue pq) {
+			//Adjust the state of prev pq holder (ThreadState)
+			ThreadState prevHolder = pq.holder;
+			if (prevHolder != null) {
+				prevHolder.pqHave.remove(pq);
+				if (pq.transferPriority == true)
+					((LotteryThreadState)(prevHolder)).updateEffectivePriority();
+			}
+
+			//Adjust the state of this ThreadState 
+			if (this.pqWant != null && this.pqWant.equals(pq))
+				this.pqWant = null;
+			this.pqHave.add(pq);
+			
+			//Adjust the state of pq
+            // System.out.println("pq.waitQueue.contains(this) == " + pq.waitQueue.contains(this));
+			pq.waitQueue.remove(this);
+            // System.out.println("pq.waitQueue.contains(this) == " + pq.waitQueue.contains(this));
+			pq.holder = this;
+            this.updateEffectivePriority();
+		}	
     }
     
     public static void selfTest() {

@@ -313,7 +313,7 @@ public class PriorityScheduler extends Scheduler {
 			pq.waitQueue.remove(this);
            // System.out.println("pq.waitQueue.contains(this) == " + pq.waitQueue.contains(this));
 			pq.holder = this;
-            this.updateEffectivePriority();
+            //this.updateEffectivePriority();
 		}	
   }
 }
