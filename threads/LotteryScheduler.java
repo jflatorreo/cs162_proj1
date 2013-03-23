@@ -305,7 +305,8 @@ public class LotteryScheduler extends Scheduler {
         //DONE!!!!
         public void waitForAccess(LotteryQueue pq) {
         	System.out.println("wFA" + this.toString().substring(44));
-        	for (ThreadState ts: pq.waitQueue) System.out.print(ts.toString().substring(44) + ", ");
+        	System.out.print("H: " + pq.holder.toString().substring(44) + ", WQ: ")
+        	for (ThreadState ts: pq.waitQueue) System.out.print(ts.toString().substring(44) + ",");
         	System.out.println();
 			this.pqWant = pq;
 			//this.time = Machine.timer().getTime();
