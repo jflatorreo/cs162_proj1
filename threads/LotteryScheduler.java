@@ -4,6 +4,8 @@ import nachos.machine.*;
 import nachos.threads.PriorityScheduler.PriorityQueue;
 import nachos.threads.PriorityScheduler.ThreadState;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.HashSet;
@@ -29,61 +31,145 @@ import java.util.Iterator;
  * Unlike a priority scheduler, these tickets add (as opposed to just taking
  * the maximum).
  */
-public class LotteryScheduler extends PriorityScheduler {
-    public static final int priorityMinimum = 1;
-    public static final int priorityMaximum = Integer.MAX_VALUE;
-    /**
-     * Allocate a new lottery scheduler.
-     */
-    public LotteryScheduler() {
-    }
-    //DONE!!!!
-    protected ThreadState getThreadState(KThread thread) {
-		if (thread.schedulingState == null)
-			thread.schedulingState = new LotteryThreadState(thread);
-		return (ThreadState) thread.schedulingState;
-    }
-    /**
-     * Allocate a new lottery thread queue.
-     *
-     * @param	transferPriority	<tt>true</tt> if this queue should
-     *					transfer tickets from waiting threads
-     *					to the owning thread.
-     * @return	a new lottery thread queue.
-     */
-    public ThreadQueue newThreadQueue(boolean transferPriority) {
-        return new LotteryQueue(transferPriority);
-    }
+public class LotteryScheduler extends Scheduler {
+	  //Fields
+	  public static final int priorityDefault = 1;
+	  public static final int priorityMinimum = 1;
+	  public static final int priorityMaximum = Integer.MAX_VALUE;
+	  public static int TickTimer = 0;
+
+	    /**
+	     * Allocate a new lottery scheduler.
+	     */
+	    /**
+	     * Allocate a new lottery thread queue.
+	     *
+	     * @param	transferPriority	<tt>true</tt> if this queue should
+	     *					transfer tickets from waiting threads
+	     *					to the owning thread.
+	     * @return	a new lottery thread queue.
+	     */
+
+		//Constructor
+		public LotteryScheduler() {
+			System.out.println("LotteryScheduler");
+	  }
+
+		//Helper Methods
+	  public int getPriority(KThread thread) {
+	    Lib.assertTrue(Machine.interrupt().disabled());
+			return getThreadState(thread).getPriority();
+	  }
+
+	  public int getEffectivePriority(KThread thread) {
+			Lib.assertTrue(Machine.interrupt().disabled());
+			return getThreadState(thread).getEffectivePriority();
+	  }
+
+	  public void setPriority(KThread thread, int priority) {
+			Lib.assertTrue(Machine.interrupt().disabled());
+			Lib.assertTrue(priority >= priorityMinimum && priority <= priorityMaximum);
+			getThreadState(thread).setPriority(priority);
+	  }
+		
+	
+	    //DONE!!!!
+	    protected ThreadState getThreadState(KThread thread) {
+			if (thread.schedulingState == null)
+				thread.schedulingState = new ThreadState(thread);
+			return (ThreadState) thread.schedulingState;
+	    }
+	    
+		//Action Methods
+	    public ThreadQueue newThreadQueue(boolean transferPriority) {
+	        return new LotteryQueue(transferPriority);
+	    }
+		
+	  public boolean increasePriority() {
+			boolean intStatus = Machine.interrupt().disable();
+			KThread thread = KThread.currentThread();
+			int priority = getPriority(thread);
+			
+			if (priority == priorityMaximum)
+				return false;	
+			setPriority(thread, priority+1);
+			Machine.interrupt().restore(intStatus);
+			return true;
+	  }
+
+	  public boolean decreasePriority() {
+			boolean intStatus = Machine.interrupt().disable();
+			KThread thread = KThread.currentThread();
+			int priority = getPriority(thread);
+			
+			if (priority == priorityMinimum)
+				return false;
+			setPriority(thread, priority-1);
+			Machine.interrupt().restore(intStatus);
+			return true;
+	  }  
+	  
     
-    protected class LotteryQueue extends PriorityQueue {
+    protected class LotteryQueue extends ThreadQueue {		//Fields
+		public ThreadState holder;
+		public TreeSet<ThreadState> waitQueue ; //max effectivePriority/time pops first.
+		public boolean transferPriority;
+
+		public void waitForAccess(KThread thread) {
+			Lib.assertTrue(Machine.interrupt().disabled());
+			getThreadState(thread).waitForAccess(this);
+		}
+
+		public void acquire(KThread thread) {
+			Lib.assertTrue(Machine.interrupt().disabled());
+			getThreadState(thread).acquire(this);
+		}
+		
         //In terms of picking the next thread linear in the number of threads on the queue is fine
-        LotteryQueue(boolean transferPriority) {
-            super(transferPriority);
-        }
+		//Constructor
+		LotteryQueue(boolean transferPriority) {
+			System.out.println("LotteryQueue");
+			this.transferPriority = transferPriority;
+			this.holder = null;
+			waitQueue = new TreeSet<ThreadState>(new Comparator<ThreadState>() {
+				public int compare(ThreadState ts1, ThreadState ts2) {
+					if (ts1.getEffectivePriority() < ts2.getEffectivePriority())
+						return -1;
+					else if (ts1.getEffectivePriority() == ts2.getEffectivePriority()) 
+						return new Integer(ts2.time).compareTo(ts1.time);
+					else return 1;
+				}
+			});
+		}
+        
         public void updateEntry(ThreadState ts, int newEffectivePriority) {
-            int difference = newEffectivePriority - ts.getEffectivePriority();
+        	System.out.println("updateEntry...");
+            int difference = newEffectivePriority - this.holder.getEffectivePriority();
             if(this.waitQueue.remove(ts)) {
             	ts.effectivePriority = newEffectivePriority;
             	this.waitQueue.add(ts);
             	if(difference != 0)
-            		((LotteryThreadState)(ts)).propagate(difference);
+            		((ThreadState)(ts)).propagate(difference);
 		    } else {
 		    	if(holder != ts) {
-			  //System.out.println("PROBLEM HERE");
+		    		//entering here doesnt make any sense
 		    	} else {
 		    		if(ts.pqWant != null) {
 		    			((LotteryQueue)(ts.pqWant)).updateEntry(ts, newEffectivePriority);
 		    		} else {
-		    			ts.effectivePriority = newEffectivePriority;	
+		    			ts.effectivePriority = newEffectivePriority;
 		    		}
-		    	}		
+		    	}
 		    }
             //propagate
             //if(difference != 0)
             //    ts.propagate(difference);
         }
+        
+        
         //DONE!!!!!
         protected ThreadState pickNextThread() {
+        	System.out.println("pickNextThread");
             //Set up an Iterator and go through it
             Random randomGenerator = new Random();
             int ticketCount = 0;
@@ -112,25 +198,55 @@ public class LotteryScheduler extends PriorityScheduler {
         }
         
 		public KThread nextThread() {
+			System.out.println("NextThread is called on a resource");
 			Lib.assertTrue(Machine.interrupt().disabled());
 			ThreadState newHolder = this.pickNextThread(); //return null if waitQueue is empty
 
 			if (newHolder != null) { //When waitQueue is not empty
 				this.acquire(newHolder.thread);
+				System.out.println("NT - returning newHolder.thread");
 				return newHolder.thread;
 			}
 			else { //When waitQueue is empty
 				this.holder = null;
-			  return null;
+				System.out.println("NT - returning NULL");				
+			    return null;
 			}
 		}        
+		public void print() {
+			Lib.assertTrue(Machine.interrupt().disabled());
+			//TODO (optional)
+		}		
     }
     
-    
-    protected class LotteryThreadState extends ThreadState {
-        public LotteryThreadState(KThread thread) {
-            super(thread);
-        }
+    protected class ThreadState {
+    	//Fields
+		protected KThread thread;
+		protected int priority;
+		public int effectivePriority;
+		public ArrayList<LotteryQueue> pqHave; //List of resources it has
+		public LotteryQueue pqWant;   //The next resource it wants
+		public int time;
+		
+		
+		//Constructor
+		public ThreadState(KThread thread) {
+			System.out.println("ThreadState Constructor");
+			this.thread = thread;
+			this.pqHave = new ArrayList<LotteryQueue>();
+			this.setPriority(priorityDefault);
+			this.pqWant = null;
+			this.time = Integer.MAX_VALUE;
+		}
+		//Helper Methods
+		public int getPriority() {
+			return this.priority;
+		}
+		
+		public int getEffectivePriority() {
+			return this.effectivePriority;
+		}		
+		
         //DONE!!!!
         public void setPriority(int newPriority) {
             this.priority = newPriority;
@@ -145,11 +261,28 @@ public class LotteryScheduler extends PriorityScheduler {
                 }
             }
         }
+        
+        public void propagateUp(int difference) {
+        	if (this.pqWant != null && this.pqWant.transferPriority == true) {
+        		ThreadState recipient = this.pqWant.holder;
+        		if (recipient.pqWant == null)
+        			recipient.effectivePriority += difference;
+        		else {
+        			recipient.pqWant.waitQueue.remove(recipient);
+        			recipient.effectivePriority += difference;
+        			recipient.pqWant.waitQueue.add(recipient);
+        		}
+        	}
+        	return;
+        }
+        
+        
         //DONE!!!!
         public void updateEffectivePriority() {
+        	System.out.println("updateEffectivePriority");
             //Calculate new effectivePriority checking possible donations from threads that are waiting for me
             int sumPriority = this.priority;
-            for (PriorityQueue pq: this.pqHave)
+            for (LotteryQueue pq: this.pqHave)
                 if (pq.transferPriority == true) {
                     Iterator<ThreadState> itr = pq.waitQueue.iterator();
                     while(itr.hasNext())
@@ -173,7 +306,8 @@ public class LotteryScheduler extends PriorityScheduler {
             }
         }
         //DONE!!!!
-        public void waitForAccess(PriorityQueue pq) {
+        public void waitForAccess(LotteryQueue pq) {
+        	System.out.println("waitForAccesss");
 			this.pqWant = pq;
 			//this.time = Machine.timer().getTime();
 			this.time = TickTimer++;
@@ -185,13 +319,14 @@ public class LotteryScheduler extends PriorityScheduler {
             }
 		}
         
-        public void acquire(PriorityQueue pq) {
+        public void acquire(LotteryQueue pq) {
+        	System.out.println("Acquire");
 			//Adjust the state of prev pq holder (ThreadState)
 			ThreadState prevHolder = pq.holder;
 			if (prevHolder != null) {
 				prevHolder.pqHave.remove(pq);
 				if (pq.transferPriority == true)
-					((LotteryThreadState)(prevHolder)).updateEffectivePriority();
+					((ThreadState)(prevHolder)).updateEffectivePriority();
 			}
 
 			//Adjust the state of this ThreadState 
@@ -213,7 +348,7 @@ public class LotteryScheduler extends PriorityScheduler {
         LotteryScheduler ls = new LotteryScheduler();
         LotteryQueue[] pq = new LotteryQueue[5];
         KThread[] t = new KThread[5];
-        ThreadState lts[] = new LotteryThreadState[5];
+        ThreadState lts[] = new ThreadState[5];
         
         for (int i=0; i < 5; i++)
             pq[i] = ls.new LotteryQueue(true);
@@ -231,40 +366,40 @@ public class LotteryScheduler extends PriorityScheduler {
         pq[0].acquire(t[0]);
 	Lib.assertTrue(pq[0].holder.thread.equals(t[0]));
 	Lib.assertTrue(pq[0].waitQueue.size()==0);
-        //System.out.println("pq[0].acquire(t[0])");
+        System.out.println("pq[0].acquire(t[0])");
 	Lib.assertTrue(pq[0].holder.effectivePriority == 1);
 
         lts[0].setPriority(5);
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 5);
-        //System.out.println("lts[0].setPriority(5)");
+        System.out.println("lts[0].setPriority(5)");
         
         pq[0].waitForAccess(t[1]);
-        //System.out.println("pq[0].waitForAccess(t[1])");
+        System.out.println("pq[0].waitForAccess(t[1])");
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 6);
 
         Lib.assertTrue(pq[0].waitQueue.size() == 1);
         KThread temp = pq[0].pickNextThread().thread;
-        //System.out.println("pq[0].pickNextThread()");
+        System.out.println("pq[0].pickNextThread()");
 	//System.out.println("nextThread is " + temp.getName());
         Lib.assertTrue(temp != null);
         
         pq[0].waitForAccess(t[2]);
-        //System.out.println("pq[0].waitForAccess(t[2])");
+        System.out.println("pq[0].waitForAccess(t[2])");
 	Lib.assertTrue(pq[0].waitQueue.size() == 2);
 	Lib.assertTrue(lts[0].priority == 5);
 	Lib.assertTrue(lts[0].effectivePriority == 7);
         
         lts[1].setPriority(3);
-        //System.out.println("lts[1].setPriority(3)");
+        System.out.println("lts[1].setPriority(3)");
         Lib.assertTrue(lts[1].priority == 3);
 	Lib.assertTrue(lts[1].effectivePriority == 3);
 	Lib.assertTrue(lts[0].effectivePriority == 9);
         
         
         lts[2].setPriority(6);
-        //System.out.println("lts[2].setPriority(6)");
+        System.out.println("lts[2].setPriority(6)");
         Lib.assertTrue(lts[2].priority == 6);
 	Lib.assertTrue(lts[2].effectivePriority == 6);
 	Lib.assertTrue(lts[0].effectivePriority == 14);
@@ -316,6 +451,6 @@ public class LotteryScheduler extends PriorityScheduler {
         //System.out.println("pq[0].nextThread()");
         //System.out.println("nextThread == null is: " + (temp == null));
         
-        Machine.interrupt().enable();*/
+        Machine.interrupt().enable(); */
     }
 }
