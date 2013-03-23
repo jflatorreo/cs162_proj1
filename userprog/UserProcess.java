@@ -20,50 +20,48 @@ import java.util.Iterator;
  */
 public class UserProcess {
 	//Fields
-	/** The program being run by this process. */
-	protected Coff coff;
-	/** This process's page table. */
-	protected TranslationEntry[] pageTable;
-	/** The number of contiguous pages occupied by the program. */
-	protected int numPages;
-	/** The number of pages in the program's stack. */
-	protected final int stackPages = 8;
+	protected Coff coff; //The program being run by this process
+	protected TranslationEntry[] pageTable; //This process's page table
+	protected int numPages; //The number of contiguous pages occupied by the program
+	protected final int stackPages = 8; //The number of pages in the program's stack
 	private int initialPC, initialSP;
 	private int argc, argv;
 	private static final int pageSize = Processor.pageSize;
 	private static final char dbgProcess = 'a';
 	
-	//New Fields
-	//Part I - static
+    /** Part I */
 	private static int processCounter = 0;
 	private static final int MAX_SIZE = 16; //the max number of files that one UserProcess can open
-	// Part I - nonstatic
 	private int processID;
 	private OpenFile[] openFileList;
-	//Part III - static
+    /** Part I END */
+
+    /** Part III */
 	private static Lock lock = new Lock();
 	private static int numUserProcesses = 0;
-	//Part III - nonstatic
 	private UserProcess parent;
 	private HashMap<Integer, UserProcess> children;
 	private int exitStatus;
 	private UThread thread;
+    /** Part III END */
 
 	//Constructor
 	public UserProcess() {
-		//Part I
+        /** Part I */
 		lock.acquire();
 		processID = processCounter++;
 		lock.release();
 		openFileList = new OpenFile[MAX_SIZE];
 		openFileList[0] = UserKernel.console.openForReading();
 		openFileList[1] = UserKernel.console.openForWriting();
-		
-		//Part III
+        /** Part I END */
+
+        /** Part III */
 		parent = null;
 		children = new HashMap<Integer, UserProcess>();
 		exitStatus = 0;
 		thread = null;
+        /** Part III END */
 	}
 	
 	//Action Methods
@@ -164,6 +162,8 @@ public class UserProcess {
 	 *			the array.
 	 * @return	the number of bytes successfully transferred.
 	 */
+
+    /** Part II */
 	public int readVirtualMemory(int vaddr, byte[] data, int offset, int length) {
 		byte[] memory = Machine.processor().getMemory();
 
@@ -198,6 +198,7 @@ public class UserProcess {
 		}
 		return totalAmount;
 	}
+    /** Part II END */
 
 	/**
 	 * Transfer all data from the specified array to this process's virtual
@@ -227,6 +228,7 @@ public class UserProcess {
 	 * @return	the number of bytes successfully transferred.
 	 */
 
+    /** Part II */
 	public int writeVirtualMemory(int vaddr, byte[] data, int offset, int length) {
 		Lib.assertTrue(offset >= 0 && length >= 0 && offset+length <= data.length);
 
@@ -263,6 +265,7 @@ public class UserProcess {
 		}
 		return totalAmount;
 	}
+    /** Part II END */
 
 	/**
 	 * Load the executable with the specified name into this process, and
@@ -359,6 +362,8 @@ public class UserProcess {
 	 *
 	 * @return	<tt>true</tt> if the sections were successfully loaded.
 	 */
+
+    /** Part II */
 	protected boolean loadSections() {
 		//If there are not enough free physical pages at the time we return false
         //Since loadSections() is called by multiple processes, checking size should be
@@ -388,11 +393,14 @@ public class UserProcess {
         }
         return true;
     }
+    /** Part II END */
 	
 
 	/**
 	 * Release any resources allocated by <tt>loadSections()</tt>.
 	 */
+
+    /** Part II */
 	protected void unloadSections() {
 	    UserKernel.lock.acquire();
         for (int i=0; i<numPages; i++) {
@@ -410,7 +418,8 @@ public class UserProcess {
 			if (openFileList[i] != null)
 				handleClose(i);
 		}
-    }	
+    }
+    /** Part II END */
 
 	/**
 	 * Initialize the processor's registers in preparation for running the
@@ -441,10 +450,13 @@ public class UserProcess {
 	 * execute this syscall. Any other process should ignore the syscall and return
 	 * immediately.
 	 */
+
 	private int handleHalt() {
+        /** Part I */
 		if (this.processID != 0) //this UserProcess is not root
 			return 0;
-		
+		/** Part I END */
+
 		Machine.halt();
 		
 		Lib.assertNotReached("Machine.halt() did not halt machine!");
@@ -460,6 +472,8 @@ public class UserProcess {
 	 * @param a0 fileNameAddress - first byte of virtual memory to read
 	 * @return Returns the new file descriptor, or -1 if an error occurred.
 	 */
+
+    /** Part I */
 	private int handleCreate(int a0) {
 		if (a0 < 0) //invalid fileNameAddr
 			return -1;
@@ -511,7 +525,6 @@ public class UserProcess {
 		}
 		return fileDescriptor; //the # of files that are open is over MAX_SIZE
 	}
-
 
 	/**
 	 * Attempt to read up to count bytes from the file or stream referred to by 
@@ -651,6 +664,7 @@ public class UserProcess {
 			return -1;
 		return 0;
 	}
+    /** Part I END */
 
 	/**
 	 * Terminate the current process immediately. Any open file descriptors
@@ -666,6 +680,8 @@ public class UserProcess {
 	 * @param a0 status
 	 * @return None
 	 */
+
+    /** Part III */
 	private void handleExit(int a0) {
 		lock.acquire(); //critical section start
 		for (UserProcess child: children.values()) {
@@ -784,6 +800,7 @@ public class UserProcess {
 		}
 		return 1;
 	}
+    /** Part III END */
 
 	private static final int
 		syscallHalt = 0,
