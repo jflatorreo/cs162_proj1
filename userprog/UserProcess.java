@@ -86,10 +86,11 @@ public class UserProcess {
 	public boolean execute(String name, String[] args) {
 		if (!load(name, args))
 			return false;
-		
+		/** Part III */
         lock.acquire();
 		numUserProcesses++;
         lock.release();
+        /** Part III END */
 
 		thread = new UThread(this);
 		thread.setName(name).fork();

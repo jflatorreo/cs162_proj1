@@ -14,10 +14,10 @@ public class UserKernel extends ThreadedKernel {
 	public static SynchConsole console;
 	private static Coff dummy1 = null; // dummy variables to make javac smarter
 
-    //New Fields
-    //Part II - static
-    public static LinkedList pages;
+    /** Part II */
+    public static LinkedList pages; //LinkedList of physical pages from memory
 	public static Lock lock;
+    /** Part II END */
 
 	//Constructor
 	public UserKernel() {
@@ -35,14 +35,14 @@ public class UserKernel extends ThreadedKernel {
 			public void run() { exceptionHandler(); }
 		});
 
-        //Initialize New Fields
-        //Part II
+        /** Part II */
         pages = new LinkedList<Integer>();
         int numPhysPages = Machine.processor().getNumPhysPages();
         for (int i = 0; i<numPhysPages; i++){
             pages.add(new Integer(i));
         }
         lock = new Lock();
+        /** Part II END */
 	}
 
 	/**
