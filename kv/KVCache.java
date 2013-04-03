@@ -28,7 +28,8 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.berkeley.cs162;
+//package edu.berkeley.cs162;
+package nachos.kv;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 

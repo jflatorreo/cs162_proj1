@@ -28,14 +28,21 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.berkeley.cs162;
+//package edu.berkeley.cs162;
+package nachos.kv;
 
 import java.io.IOException;
 
+/*
 import edu.berkeley.cs162.KVClientHandler;
 import edu.berkeley.cs162.KVServer;
 import edu.berkeley.cs162.NetworkHandler;
 import edu.berkeley.cs162.SocketServer;
+*/
+import nachos.kv.KVClientHandler;
+import nachos.kv.KVServer;
+import nachos.kv.NetworkHandler;
+import nachos.kv.SocketServer;
 
 public class Server {
 	static KVServer key_server = null;

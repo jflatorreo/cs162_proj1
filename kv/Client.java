@@ -28,11 +28,13 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.berkeley.cs162;
+//package edu.berkeley.cs162;
+package nachos.kv;
 
 import java.io.IOException;
 
-import edu.berkeley.cs162.KVClient;
+//import edu.berkeley.cs162.KVClient;
+import nachos.kv.KVClient;
 
 public class Client {
 	/**
