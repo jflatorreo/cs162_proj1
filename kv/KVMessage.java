@@ -100,7 +100,7 @@ public class KVMessage {
 	public KVMessage(String msgType, String message) throws KVException {
 		if (validMsgType(msgType) == false)
 			throw new KVException(new KVMessage("resp", "Message format incorrect"));
-		else if (msgType != "resp" || (message == "" || message == null))
+		else if (message == "" || message == null)
 			throw new KVException(new KVMessage("resp", "Message format incorrect"));
 		else {
 			this.msgType = msgType;
@@ -266,8 +266,9 @@ public class KVMessage {
 			throw e;
 		}
 		catch (Exception e) {
-			throw new KVException(new KVMessage("resp", "Unknow Error: " + e.getLocalizedMessage()));
+			throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
 		}
+		//need to flush OutputStream to notify server to know that it's not getting anymore input.
 	}
 	/** Part I END */
 	
