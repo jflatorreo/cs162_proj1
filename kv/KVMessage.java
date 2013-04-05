@@ -37,6 +37,8 @@ import java.io.InputStream;
 import java.net.Socket;
 
 /** Part I */
+import java.io.OutputStream;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -45,6 +47,9 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import nachos.kv.KVException;
+import java.io.IOException;
+import javax.xml.parsers.ParserConfigurationException;
+import org.xml.sax.SAXException;
 /** Part I END */
 
 /**
@@ -78,18 +83,9 @@ public class KVMessage {
 		else
 			return false;
 	}
-	/** Part I END */
 
-	/* Solution from http://weblogs.java.net/blog/kohsuke/archive/2005/07/socket_xml_pitf.html */
-	private class NoCloseInputStream extends FilterInputStream {
-		public NoCloseInputStream(InputStream in) {
-			super(in);
-		}
-		public void close() {} // ignore close
-	}
-
-	/** Part I */
-	/***
+	//Constructors
+	/**
 	 * 
 	 * @param msgType
 	 * @throws KVException of type "resp" with message "Message format incorrect" if msgType is unknown
@@ -104,7 +100,7 @@ public class KVMessage {
 	public KVMessage(String msgType, String message) throws KVException {
 		if (validMsgType(msgType) == false)
 			throw new KVException(new KVMessage("resp", "Message format incorrect"));
-		else if (msgType != "resp" && (message == "" || message == null))
+		else if (msgType != "resp" || (message == "" || message == null))
 			throw new KVException(new KVMessage("resp", "Message format incorrect"));
 		else {
 			this.msgType = msgType;
@@ -112,7 +108,7 @@ public class KVMessage {
 		}
 	}
 
-	/***
+	/**
 	 * Parse KVMessage from incoming network connection
 	 * @param sock
 	 * @throws KVException if there is an error in parsing the message. The exception should be of type resp and message should be :
@@ -121,7 +117,6 @@ public class KVMessage {
 	 * c. "Message format incorrect" - if there message does not conform to the required specifications. Examples include incorrect message type. 
 	 */
 	public KVMessage(InputStream input) throws KVException {
-		Exception ex = null;
 		try {
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
@@ -133,7 +128,7 @@ public class KVMessage {
 			if (root.getNodeName() != "KVMessage")
 				throw new KVException(new KVMessage("resp", "Message format incorrect"));
 
-			String msgType = root.getAttribute("type");
+			this.msgType = root.getAttribute("type");
 			NodeList keyList = root.getElementsByTagName("Key");
 			NodeList valueList = root.getElementsByTagName("Value");
 			NodeList messageList = root.getElementsByTagName("Message");
@@ -141,7 +136,17 @@ public class KVMessage {
 			if (keyList.getLength()>1 || valueList.getLength()>1 || messageList.getLength()>1)
 				throw new KVException(new KVMessage("resp", "Message format incorrect"));
 			
-			switch (msgType) {
+			switch (this.msgType) {
+				case ("getreq"):
+					if (keyList.getLength()==0)
+						throw new KVException(new KVMessage("resp", "Message format incorrect"));
+					else {
+						String key = keyList.item(0).getTextContent();
+						if (key=="" || key==null)
+							throw new KVException(new KVMessage("resp", "Message format incorrect"));
+						this.key = key;
+					}
+					break;
 				case ("putreq"):
 					if (keyList.getLength()==0 || valueList.getLength()==0)
 						throw new KVException(new KVMessage("resp", "Message format incorrect"));
@@ -150,27 +155,129 @@ public class KVMessage {
 						String value = valueList.item(0).getTextContent();
 						if (key=="" || key==null || value=="" || value==null)
 							throw new KVException(new KVMessage("resp", "Message format incorrect"));
+						this.key = key;
+						this.value = value;
 					}
 					break;
+				case ("delreq"):
+					if (keyList.getLength()==0)
+						throw new KVException(new KVMessage("resp", "Message format incorrect"));
+					else {
+						String key = keyList.item(0).getTextContent();
+						if (key=="" || key==null)
+							throw new KVException(new KVMessage("resp", "Message format incorrect"));
+						this.key = key;
+					}
+					break;
+				case ("resp"):
+					if (messageList.getLength() == 0) {
+						if (keyList.getLength() == 0 || valueList.getLength() == 0)
+							throw new KVException(new KVMessage("resp", "Message format incorrect"));
+						else {
+							String key = keyList.item(0).getTextContent();
+							String value = valueList.item(0).getTextContent();
+							if (key=="" || key==null || value=="" || value==null)
+								throw new KVException(new KVMessage("resp", "Message format incorrect"));
+							this.key = key;
+							this.value = value;
+						}
+					}
+					else {
+						String message = messageList.item(0).getTextContent();
+						if (message=="" || message==null)
+							throw new KVException(new KVMessage("resp", "Message format incorrect"));
+						this.message = message;
+					}
+				default:
+					throw new KVException(new KVMessage("resp", "Message format incorrect"));
 			}
 		}
+		catch (IOException e) {
+			throw new KVException(new KVMessage("resp", "Network Error: Could not receive data"));
+		}
+		catch (ParserConfigurationException e) {
+			throw new KVException(new KVMessage("resp", "XML Error: Received unparseable message"));
+		}
+		catch (SAXException e) {
+			throw new KVException(new KVMessage("resp", "XML Error: Received unparseable message"));
+		}
+		catch (KVException e) {
+			throw e;
+		}
 		catch (Exception e) {
-			e.printStackTrace();
+			throw new KVException(new KVMessage("resp", "Unknow Error: " + e.getLocalizedMessage()));
 		}
 	}
 
+	//Action Methods
 	/**
 	 * Generate the XML representation for this message.
 	 * @return the XML String
 	 * @throws KVException if not enough data is available to generate a valid KV XML message
 	 */
 	public String toXML() throws KVException {
-		return null;
-		// TODO: implement me
+		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+		xml += "<KVMessage type=\"" + this.msgType + "\">\n";
+		
+		switch (this.msgType) {
+			case ("getreq"):
+				if (this.key=="" || this.key==null)
+					throw new KVException(new KVMessage("resp", "Message format incorrect"));
+				xml += "<Key>" + this.key + "</Key>\n";
+				break;
+			case ("putreq"):
+				if (this.key=="" || this.key==null || this.value=="" || this.value==null)
+					throw new KVException(new KVMessage("resp", "Message format incorrect"));
+				xml += "<Key>" + this.key + "</Key>\n";
+				xml += "<Value>" + this.value + "</Value>\n";
+				break;
+			case ("delreq"):
+				if (this.key=="" || this.key==null)
+					throw new KVException(new KVMessage("resp", "Message format incorrect"));
+				xml += "<Key>" + this.key + "</Key>\n";
+				break;
+			case ("resp"):
+				if (this.message=="" || this.message==null) {
+					if (this.key=="" || this.key==null || this.value=="" || this.value==null)
+						throw new KVException(new KVMessage("resp", "Message format incorrect"));
+					xml += "<Key>" + this.key + "</Key>\n";
+					xml += "<Value>" + this.value + "</Value>\n";
+				}
+				else {
+					xml += "<Message>" + this.message + "</Message>\n";
+				}
+				break;
+			default:
+				throw new KVException(new KVMessage("resp", "Message format incorrect"));
+		}
+		
+		xml += "</KVMessage>\n";
+		return xml;
 	}
 
 	public void sendMessage(Socket sock) throws KVException {
-		// TODO: implement me
+		try {
+			sock.getOutputStream().write(this.toXML().getBytes());
+		}
+		catch (IOException e) {
+			throw new KVException(new KVMessage("resp", "Network Error: Could not send data"));
+		}
+		catch (KVException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new KVException(new KVMessage("resp", "Unknow Error: " + e.getLocalizedMessage()));
+		}
 	}
 	/** Part I END */
+	
+	//Class
+	/* Solution from http://weblogs.java.net/blog/kohsuke/archive/2005/07/socket_xml_pitf.html */
+	private class NoCloseInputStream extends FilterInputStream {
+		public NoCloseInputStream(InputStream in) {
+			super(in);
+		}
+		public void close() {} // ignore close
+	}
+
 }
