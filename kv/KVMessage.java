@@ -268,7 +268,13 @@ public class KVMessage {
 		catch (Exception e) {
 			throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
 		}
-		//need to flush OutputStream to notify server to know that it's not getting anymore input.
+		
+		try {
+			sock.shutdownOutput();
+		}
+		catch (IOException e) {
+			throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
+		}
 	}
 	/** Part I END */
 	
