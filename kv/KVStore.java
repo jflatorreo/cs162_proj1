@@ -31,12 +31,17 @@
  */
 //package edu.berkeley.cs162;
 package nachos.kv;
+import java.io.File;
 import java.io.FileWriter;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
 import javax.xml.stream.events.XMLEvent;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 
 /**
@@ -53,6 +58,10 @@ public class KVStore implements KeyValueInterface {
 		public String pairValue;
 		
 		public Pair () {}
+		public Pair(String k, String v) {
+			this.pairKey = new String (k);
+			this.pairValue = new String (v);
+		}
 	}
 	
 	public KVStore() {
@@ -114,11 +123,55 @@ public class KVStore implements KeyValueInterface {
 	private void delDelay() {
 		AutoGrader.agStoreDelay();
 	}
-	
-    public String toXML() throws KVException {
-        // TODO: implement me
-        return null;
-    }        
+	/*
+	 * <?xml version="1.0" encoding="UTF-8"?>
+<KVStore>
+    <KVPair>
+      <Key>key</Key>
+      <Value>value</Value>
+    </KVPair>
+    <KVPair>
+      <Key>key2</Key>
+      <Value>value2</Value>
+    </KVPair>
+</KVStore>
+	 */
+    public String toXML() {
+    	try { 
+    		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+    		Document doc = docBuilder.newDocument();
+    		Element rElem, pElem, kElem, vElem;
+    		Node kValue, vValue;
+    		rElem = doc.createElement("KVStore");
+    		doc.appendChild(rootElement);
+    		for (String key: store.keys()) {
+    			pElem = doc.createElement("KVPair");
+    			//Key
+                kValue = doc.createTextNode(key);
+                kElem = doc.createElement("Key");
+                kElem.appendChild(kValue);
+                pElem.appendChild(kElem);
+                //Value
+                vValue = doc.createTextNode(store.get(key));
+                vElem = doc.createElement("Value");
+                vElem.appendChild(vValue);
+    			pElem.appendChild(vElem);
+    			//Append pair to root
+                rElem.appendChild(pElem);	
+    		}
+    		DOMSource domSource = new DOMSource(doc);
+            StringWriter stringWriter = new StringWriter();
+            StreamResult streamResult = new StreamResult(stringWriter);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.transform(domSource, streamResult);
+            return stringWriter.toString();
+    	}
+        catch (Exception e) {
+        	throw new KVException(new KVMessage("resp", "Error during KVStore toXML"));
+        }
+    }     
 
     public void dumpToFile(String fileName) throws KVException {
     	try {
@@ -131,69 +184,43 @@ public class KVStore implements KeyValueInterface {
     	}
     	return;
     }
+    		
+    public void restoreFromFile(String fileName) throws Exception {
+        File f = new File(fileName);
+        if (!f.exists() || !f.canRead()) {
+            throw new IOException(fileName + " could not be opened");
+        }
+        Document doc;
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = dbf.newDocumentBuilder();
+            doc = docBuilder.parse(fileSrc);
+	        if (!doc.getXmlEncoding().equals("UTF-8")) {
+	            throw new KVException(new KVMessage("resp", "Unknown Error: Incorrect XML char encoding."));
+	        }
+	        NodeList node = doc.getElementsByTagName("KVStore");
+	        if (nodes.getLength() != 1) {
+	            throw new KVException(new KVMessage("resp", "Unknown Error: XML format incorrect"));
+	        }
 
-    public void restoreFromFile(String fileName) throws KVException{
-    		// KVPair is a private class containing two public instance variables, key and
-    		// value
-    		int parseErrors = 0;
-    		List<E> <Pair> pairs = new List<Pair>();
-    		FileInputStream fs = new FileInputStream(fileName);
-    		XMLInputFactory xmlif = XMLInputFactory.newInstance();
-    		XMLEventReader eventReader = xmlif.createXMLEventReader(fs);
-    		Pair pair;
-    		try {
-	    		while (eventReader.hasNext()) {
-		    		XMLEvent event = eventReader.nextEvent();
-		    		if (event.isStartElement()) {
-		    			StartElement element = event.asStartElement().getName().getLocalPart();
-			    		if (element.equals("KVStore")) {
-			    			continue;
-			    		}
-			    		else if (element.equals("KVPair")) {
-			    			pair new Pair();
-			    			continue;
-			    		}
-			    		else if (element.equals("Key")) {
-			    			event = eventReader.nextEvent();
-			    			pair.pairKey = event.asCharacters().getData();
-			    			continue;
-			    		}
-			    		else if (element.equals("Value")) {
-			    			event = eventReader.nextEvent();
-			    			pair.pairValue = event.asCharacters().getData();
-			    			continue;
-			    		}
-			    		else {
-			    			parseErrors++;
-			    			break;
-			    		}
-		    		}
-		    		else if (event.isEndElement()) {
-		    			EndElement element = event.asEndElement().getName().getLocalPart();
-			    		else if (element.equals("KVPair")) {
-			    			pairs.add(pair);
-			    			pair = null;
-			    			continue;
-		    			}
-			    		else if (element.equals("KVStore") || element.equals("Key") || element.equals("Value")) {
-			    			continue;
-			    		}
-			    		else {
-			    			parseErrors++;
-			    			break;
-			    		}
-		    		}
-	    		}
-    		}
-    		catch (Exception e) {
-    			throw new KVException();
-    		}
-    		if (parseErrors > 0 || pair != null) {
-    			throw new KVException();
-    		}
-    		for (Pair p: pairs) {
-    			store.put(p.pairKey, p.pairValue);
-    		}
-    		return;
+	        // Restore K-V pairs
+	        NodeList pairNodes = ((Element)nodes.item(0)).getElementsByTagName("KVPair");
+	        Element pElem, kElem, vElem;
+	        for (int i = 0; i < pairNodes.getLength(); i++) {
+	        	pElem = (Element) pairNodes.item(i);
+	        	kElem = (Element) pElem.getElementsByTagName("Key")[0];
+	        	vElem = (Element) pElem.getElementsByTagName("Value")[0];
+	        	put (vElem.getFirstChild().getNodeValue(), kElem.getFirstChild().getNodeValue())
+	        }
+        } catch (IOException ioe) {
+            throw new KVException(new KVMessage("resp", "I/O Error during restoreFromFile"));
+        } catch (SAXException se){
+            throw new KVException(new KVMessage("resp", "XML Error during restoreFromFile"));
+        } catch (IllegalArgumentException iae) {
+            throw new KVException(new KVMessage("resp", filename + " is null..."));
+        } catch (ParserConfigurationException pce) {
+            throw new KVException(new KVMessage("resp", "Unknown Error: ParserConfigurationException"));
+        }
+        return;
     }
 }

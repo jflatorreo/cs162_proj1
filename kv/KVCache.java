@@ -36,6 +36,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import javax.xml.stream.XMLStreamWriter;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 
 /**
  * A set-associate cache which has a fixed maximum number of sets (numSets).
@@ -128,25 +131,6 @@ public class KVCache implements KeyValueInterface {
 	private int getSetId(String key) {
 		return Math.abs(key.hashCode()) % numSets;
 	}
-	
-    public String toXML() {
-        // TODO: Implement Me!
-    	StringWriter sw = new StringWriter();
-    	XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
-    	XMLStreamWriter writer = new IndentingXMLStreamWriter(xmlof.createXMLStreamWriter(sw));
-    	writer.writeStartDocument("UTF-8", "1.0");
-    	writer.writeStartElement("KVCahce");
-    	for id, set in enumerate(sets):
-    		write <Set Id={id}>
-    		writer.writeStartElement("KVPair");
-    		writer.writeAttribute("Key", key);
-    		writer.writeAttribute("Value", store.get(key));
-    		writer.writeEndElement();
-    	}
-    	writer.writeEndElement();
-    	writer.writeEndDocument();
-        return sw.toString();
-    }
     /*
     <?xml version="1.0" encoding="UTF-8"?>
 		<KVCache>
@@ -158,4 +142,45 @@ public class KVCache implements KeyValueInterface {
 		  	</Set>
 		</KVCache>
     */
+	public String toXML() {
+		try { 
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.newDocument();
+			Element rElem, sElem, pElem, kElem, vElem;
+			Node kValue, vValue;
+			rElem = doc.createElement("KVCache");
+			doc.appendChild(rootElement);
+			for (HashMap set: sets) {
+				sElem = doc.createElement("Set");
+				sElem.setAttribute("Id", String.valueOf(this.getSetId(set))); //we need the String of key for set id
+				for (Sting key: set.keys()) {
+					pElem = doc.createElement("KVPair");
+					//Key
+		            kValue = doc.createTextNode(key);
+		            kElem = doc.createElement("Key");
+		            kElem.appendChild(kValue);
+		            pElem.appendChild(kElem);
+		            //Value
+		            vValue = doc.createTextNode(store.get(key));
+		            vElem = doc.createElement("Value");
+		            vElem.appendChild(vValue);
+					pElem.appendChild(vElem);
+					sElem.appendChild(pElem);
+				}
+				//Append pair to root
+	            rElem.appendChild(sElem);	
+			}
+			DOMSource domSource = new DOMSource(doc);
+	        StringWriter stringWriter = new StringWriter();
+	        StreamResult streamResult = new StreamResult(stringWriter);
+	        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+	        Transformer transformer = transformerFactory.newTransformer();
+	        transformer.transform(domSource, streamResult);
+	        return stringWriter.toString();
+		}
+	    catch (Exception e) {
+	    	throw new KVException(new KVMessage("resp", "Error during KVCache toXML"));
+	    }  
+	}
 }
