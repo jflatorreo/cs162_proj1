@@ -31,8 +31,12 @@
  */
 //package edu.berkeley.cs162;
 package nachos.kv;
+import java.io.FileWriter;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.List;
+
+import javax.xml.stream.events.XMLEvent;
 
 
 /**
@@ -42,7 +46,14 @@ import java.util.Hashtable;
  *
  */
 public class KVStore implements KeyValueInterface {
-	private Dictionary<String, String> store 	= null;
+	private Dictionary<String, String> store = null;
+	
+	protected class Pair {
+		public String pairKey;
+		public String pairValue;
+		
+		public Pair () {}
+	}
 	
 	public KVStore() {
 		resetStore();
@@ -110,10 +121,79 @@ public class KVStore implements KeyValueInterface {
     }        
 
     public void dumpToFile(String fileName) throws KVException {
-        // TODO: implement me
+    	try {
+    		String xmlString = this.toXML();
+    		FileWriter fw = new FileWriter(fileName)
+    		fw.write(xmlString);
+    	}
+    	catch (Exception e) {
+    		throw new KVException ("IO Error");
+    	}
+    	return;
     }
 
     public void restoreFromFile(String fileName) throws KVException{
-        // TODO: implement me
+    		// KVPair is a private class containing two public instance variables, key and
+    		// value
+    		int parseErrors = 0;
+    		List<E> <Pair> pairs = new List<Pair>();
+    		FileInputStream fs = new FileInputStream(fileName);
+    		XMLInputFactory xmlif = XMLInputFactory.newInstance();
+    		XMLEventReader eventReader = xmlif.createXMLEventReader(fs);
+    		Pair pair;
+    		try {
+	    		while (eventReader.hasNext()) {
+		    		XMLEvent event = eventReader.nextEvent();
+		    		if (event.isStartElement()) {
+		    			StartElement element = event.asStartElement().getName().getLocalPart();
+			    		if (element.equals("KVStore")) {
+			    			continue;
+			    		}
+			    		else if (element.equals("KVPair")) {
+			    			pair new Pair();
+			    			continue;
+			    		}
+			    		else if (element.equals("Key")) {
+			    			event = eventReader.nextEvent();
+			    			pair.pairKey = event.asCharacters().getData();
+			    			continue;
+			    		}
+			    		else if (element.equals("Value")) {
+			    			event = eventReader.nextEvent();
+			    			pair.pairValue = event.asCharacters().getData();
+			    			continue;
+			    		}
+			    		else {
+			    			parseErrors++;
+			    			break;
+			    		}
+		    		}
+		    		else if (event.isEndElement()) {
+		    			EndElement element = event.asEndElement().getName().getLocalPart();
+			    		else if (element.equals("KVPair")) {
+			    			pairs.add(pair);
+			    			pair = null;
+			    			continue;
+		    			}
+			    		else if (element.equals("KVStore") || element.equals("Key") || element.equals("Value")) {
+			    			continue;
+			    		}
+			    		else {
+			    			parseErrors++;
+			    			break;
+			    		}
+		    		}
+	    		}
+    		}
+    		catch (Exception e) {
+    			throw new KVException();
+    		}
+    		if (parseErrors > 0 || pair != null) {
+    			throw new KVException();
+    		}
+    		for (Pair p: pairs) {
+    			store.put(p.pairKey, p.pairValue);
+    		}
+    		return;
     }
 }
