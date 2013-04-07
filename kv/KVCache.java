@@ -31,7 +31,10 @@
 //package edu.berkeley.cs162;
 package nachos.kv;
 
+import java.io.StringWriter;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
+import javax.xml.stream.XMLStreamWriter;
 
 
 /**
@@ -128,6 +131,31 @@ public class KVCache implements KeyValueInterface {
 	
     public String toXML() {
         // TODO: Implement Me!
-        return null;
+    	StringWriter sw = new StringWriter();
+    	XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
+    	XMLStreamWriter writer = new IndentingXMLStreamWriter(xmlof.createXMLStreamWriter(sw));
+    	writer.writeStartDocument("UTF-8", "1.0");
+    	writer.writeStartElement("KVCahce");
+    	for id, set in enumerate(sets):
+    		write <Set Id={id}>
+    		writer.writeStartElement("KVPair");
+    		writer.writeAttribute("Key", key);
+    		writer.writeAttribute("Value", store.get(key));
+    		writer.writeEndElement();
+    	}
+    	writer.writeEndElement();
+    	writer.writeEndDocument();
+        return sw.toString();
     }
+    /*
+    <?xml version="1.0" encoding="UTF-8"?>
+		<KVCache>
+			<Set Id="id">
+		    	<CacheEntry isReferenced="true/false" isValid="true/false">
+		      		<Key>key</Key>
+		      		<Value>value</Value>
+		    	</CacheEntry>
+		  	</Set>
+		</KVCache>
+    */
 }
