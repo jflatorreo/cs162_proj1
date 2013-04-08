@@ -257,7 +257,7 @@ public class KVMessage {
 
 	public void sendMessage(Socket sock) throws KVException {
 		try {
-			sock.getOutputStream().write(this.toXML().getBytes());
+			sock.getOutputStream().write(toXML().getBytes());
 		}
 		catch (IOException e) {
 			throw new KVException(new KVMessage("resp", "Network Error: Could not send data"));
@@ -270,10 +270,10 @@ public class KVMessage {
 		}
 		
 		try {
-			sock.shutdownOutput();
+			sock.getOutputStream().flush();
 		}
 		catch (IOException e) {
-			throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
+			throw new KVException(new KVMessage("resp", "Unknown Error: Socket is not connected"));
 		}
 	}
 	/** Part I END */

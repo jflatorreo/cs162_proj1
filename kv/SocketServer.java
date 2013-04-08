@@ -33,6 +33,9 @@ package nachos.kv;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+/** Part VI */
+import java.net.Socket;
+/** Part VI END */
 
 /** 
  * This is an generic class that should handle all TCP network connections 
@@ -50,8 +53,9 @@ public class SocketServer {
 		this.port = port;
 	}
 	
+	/** Part VI */
 	public void connect() throws IOException {
-	      // TODO: implement me
+		this.server = new ServerSocket(port);
 	}
 	
 	/**
@@ -59,7 +63,15 @@ public class SocketServer {
 	 * @throws IOException if there is a network error (for instance if the socket is inadvertently closed) 
 	 */
 	public void run() throws IOException {
-	      // TODO: implement me
+		if (this.handler == null) {
+			//error message
+			return;
+		}
+		
+		while (true) {
+			Socket clientSocket = this.server.accept();
+			this.handler.handle(clientSocket);
+		}
 	}
 	
 	/** 
@@ -74,12 +86,19 @@ public class SocketServer {
 	 * Stop the ServerSocket
 	 */
 	public void stop() {
-	      // TODO: implement me
+		finalize();
 	}
 	
 	private void closeSocket() {
-	     // TODO: implement me
+		try {
+			this.server.close();
+		}
+		catch (IOException e) {
+			//error message
+		}
+		
 	}
+	/** Part VI END */
 	
 	protected void finalize(){
 		closeSocket();
