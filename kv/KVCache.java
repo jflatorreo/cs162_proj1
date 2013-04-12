@@ -144,7 +144,7 @@ public class KVCache implements KeyValueInterface {
     */
 	public String toXML() {
 		try { 
-			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilderFactory docFactory = DocumentBuailderFactory.newInstance();
 			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 			Document doc = docBuilder.newDocument();
 			Element rElem, sElem, pElem, kElem, vElem;
