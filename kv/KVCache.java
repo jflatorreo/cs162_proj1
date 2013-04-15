@@ -31,7 +31,13 @@
 //package edu.berkeley.cs162;
 package nachos.kv;
 
+import java.io.StringWriter;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
+import javax.xml.stream.XMLStreamWriter;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 
 /**
@@ -125,9 +131,56 @@ public class KVCache implements KeyValueInterface {
 	private int getSetId(String key) {
 		return Math.abs(key.hashCode()) % numSets;
 	}
-	
-    public String toXML() {
-        // TODO: Implement Me!
-        return null;
-    }
+    /*
+    <?xml version="1.0" encoding="UTF-8"?>
+		<KVCache>
+			<Set Id="id">
+		    	<CacheEntry isReferenced="true/false" isValid="true/false">
+		      		<Key>key</Key>
+		      		<Value>value</Value>
+		    	</CacheEntry>
+		  	</Set>
+		</KVCache>
+    */
+	public String toXML() {
+		try { 
+			DocumentBuilderFactory docFactory = DocumentBuailderFactory.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.newDocument();
+			Element rElem, sElem, pElem, kElem, vElem;
+			Node kValue, vValue;
+			rElem = doc.createElement("KVCache");
+			doc.appendChild(rootElement);
+			for (HashMap set: sets) {
+				sElem = doc.createElement("Set");
+				sElem.setAttribute("Id", String.valueOf(this.getSetId(set))); //we need the String of key for set id
+				for (Sting key: set.keys()) {
+					pElem = doc.createElement("KVPair");
+					//Key
+		            kValue = doc.createTextNode(key);
+		            kElem = doc.createElement("Key");
+		            kElem.appendChild(kValue);
+		            pElem.appendChild(kElem);
+		            //Value
+		            vValue = doc.createTextNode(store.get(key));
+		            vElem = doc.createElement("Value");
+		            vElem.appendChild(vValue);
+					pElem.appendChild(vElem);
+					sElem.appendChild(pElem);
+				}
+				//Append pair to root
+	            rElem.appendChild(sElem);	
+			}
+			DOMSource domSource = new DOMSource(doc);
+	        StringWriter stringWriter = new StringWriter();
+	        StreamResult streamResult = new StreamResult(stringWriter);
+	        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+	        Transformer transformer = transformerFactory.newTransformer();
+	        transformer.transform(domSource, streamResult);
+	        return stringWriter.toString();
+		}
+	    catch (Exception e) {
+	    	throw new KVException(new KVMessage("resp", "Error during KVCache toXML"));
+	    }  
+	}
 }

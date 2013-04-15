@@ -257,7 +257,7 @@ public class KVMessage {
 
 	public void sendMessage(Socket sock) throws KVException {
 		try {
-			sock.getOutputStream().write(this.toXML().getBytes());
+			sock.getOutputStream().write(toXML().getBytes());
 		}
 		catch (IOException e) {
 			throw new KVException(new KVMessage("resp", "Network Error: Could not send data"));
@@ -268,7 +268,13 @@ public class KVMessage {
 		catch (Exception e) {
 			throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
 		}
-		//need to flush OutputStream to notify server to know that it's not getting anymore input.
+		
+		try {
+			sock.getOutputStream().flush();
+		}
+		catch (IOException e) {
+			throw new KVException(new KVMessage("resp", "Unknown Error: Socket is not connected"));
+		}
 	}
 	/** Part I END */
 	

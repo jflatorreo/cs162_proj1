@@ -40,12 +40,13 @@ package nachos.kv;
  *
  */
 public class KVServer implements KeyValueInterface {
+	//Fields
 	private KVStore dataStore = null;
 	private KVCache dataCache = null;
-	
 	private static final int MAX_KEY_SIZE = 256;
 	private static final int MAX_VAL_SIZE = 256 * 1024;
 	
+	//Constructor
 	/**
 	 * @param numSets number of sets in the data Cache.
 	 */
@@ -56,6 +57,7 @@ public class KVServer implements KeyValueInterface {
 		AutoGrader.registerKVServer(dataStore, dataCache);
 	}
 	
+	//Action Methods
 	public boolean put(String key, String value) throws KVException {
 		// Must be called before anything else
 		AutoGrader.agKVServerPutStarted(key, value);
@@ -68,13 +70,11 @@ public class KVServer implements KeyValueInterface {
 	}
 	
 	public String get (String key) throws KVException {
-		// Must be called before anything else
-		AutoGrader.agKVServerGetStarted(key);
+		AutoGrader.agKVServerGetStarted(key); //Must be called before anything else
 
-		// TODO: implement me
+		
 
-		// Must be called before returning
-		AutoGrader.agKVServerGetFinished(key);
+		AutoGrader.agKVServerGetFinished(key); //Must be called before returning
 		return null;
 	}
 	

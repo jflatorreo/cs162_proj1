@@ -56,9 +56,6 @@ public class KVClient implements KeyValueInterface {
 	//Fields
 	private String server = null;
 	private int port = 0;
-	/** Part II */
-	private Socket socket;
-	/** Part II END */
 	
 	//Constructor
 	/**
@@ -68,27 +65,25 @@ public class KVClient implements KeyValueInterface {
 	public KVClient(String server, int port) {
 		this.server = server;
 		this.port = port;
-		/** Part II */
-		this.socket = null;
-		/** Part II END */
 	}
 	
 	//Action Methods
 	/** Part II */
 	private Socket connectHost() throws KVException {
+		Socket socket;
 		try {
-			this.socket = new Socket(server, port);
+			socket = new Socket(this.server, this.port);
 		}
 		catch (Exception e) {
 			throw new KVException(new KVMessage("resp", "Network Error: Could not create socket"));
 		}
 		try {
-			this.socket.connect(this.socket.getRemoteSocketAddress());
+			socket.connect(socket.getRemoteSocketAddress());
 		}
 		catch (Exception e) {
 			throw new KVException(new KVMessage("resp", "Network Error: Could not connect"));
 		}
-		return this.socket;
+		return socket;
 	}
 	
 	private void closeHost(Socket sock) throws KVException {
@@ -103,10 +98,10 @@ public class KVClient implements KeyValueInterface {
 	public boolean put(String key, String value) throws KVException {
 	    if (key.length() > 256)
 	    	throw new KVException(new KVMessage("resp", "Oversized key"));
-	    if (value.length() > 256000)
+	    if (value.length() > 256*1024)
 	    	throw new KVException(new KVMessage("resp", "Oversized value"));
-	    if (this.socket == null)
-	    	throw new KVException(new KVMessage("resp", "Unknown Error: No connection"));
+	    
+	    Socket socket = connectHost();
 	    
 	    KVMessage request = null;
 	    KVMessage response = null;
@@ -115,18 +110,26 @@ public class KVClient implements KeyValueInterface {
 	    request = new KVMessage("putreq");
 	    request.setKey(key);
 	    request.setValue(value);
-	    request.sendMessage(this.socket);
+	    request.sendMessage(socket);
 	    
 	    try {
-	    	is = this.socket.getInputStream();
+	    	socket.shutdownOutput();
+	    }
+	    catch (IOException e) {
+	    	throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
+	    }
+	    try {
+	    	is = socket.getInputStream();
 	    }
 	    catch (IOException e){
 	    	throw new KVException(new KVMessage("resp", "Network Error: Could not receive data"));
 	    }
 	    
 	    response = new KVMessage(is);
-	    if (response.getMessage() == "Success")
+	    if (response.getMessage() == "Success") {
+            closeHost(socket);
 	    	return true;
+        }
 	    throw new KVException(response);
 	}
 
@@ -134,8 +137,8 @@ public class KVClient implements KeyValueInterface {
 	public String get(String key) throws KVException {
 		if (key.length() > 256)
 	    	throw new KVException(new KVMessage("resp", "Oversized key"));
-		if (this.socket == null)
-	    	throw new KVException(new KVMessage("resp", "Unknown Error: No connection"));
+		
+		Socket socket = connectHost();
 		
 	    String value = null;
 	    KVMessage request = null;
@@ -144,10 +147,16 @@ public class KVClient implements KeyValueInterface {
 	    
 	    request = new KVMessage("getreq");
 	    request.setKey(key);
-	    request.sendMessage(this.socket);
+	    request.sendMessage(socket);
 	    
 	    try {
-	    	is = this.socket.getInputStream();
+	    	socket.shutdownOutput();
+	    }
+	    catch (IOException e) {
+	    	throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
+	    }
+	    try {
+	    	is = socket.getInputStream();
 	    }
 	    catch (IOException e) {
 	    	throw new KVException(new KVMessage("resp", "Network Error: Could not receive data"));
@@ -155,16 +164,18 @@ public class KVClient implements KeyValueInterface {
 	    
 	    response = new KVMessage(is);
 	    value = response.getValue();
-	    if (value != null)
+	    if (value != null) {
+            closeHost(socket);
 	    	return value;
+        }
 	    throw new KVException(response);
 	}
 	
 	public void del(String key) throws KVException {
 		if (key.length() > 256)
 	    	throw new KVException(new KVMessage("resp", "Oversized value"));
-		if (this.socket == null)
-	    	throw new KVException(new KVMessage("resp", "Unknown Error: No connection"));
+		
+		Socket socket = connectHost();
 		
 		KVMessage request = null;
 		KVMessage response = null;
@@ -172,17 +183,26 @@ public class KVClient implements KeyValueInterface {
 		
 		request = new KVMessage("delreq");
 		request.setKey(key);
+		request.sendMessage(socket);
 		
 		try {
-			is = this.socket.getInputStream();
-			response = new KVMessage(is);
+	    	socket.shutdownOutput();
+	    }
+	    catch (IOException e) {
+	    	throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
+	    }
+		try {
+			is = socket.getInputStream();
 		}
 	    catch (IOException e) {
 	    	throw new KVException(new KVMessage("resp", "Network Error: Could not receive data"));
 	    }
 		
-		if (response.getMessage() == "Success")
+		response = new KVMessage(is);
+		if (response.getMessage() == "Success") {
+            closeHost(socket);
 			return;
+        }
 		throw new KVException(response);
 	    
 	}
