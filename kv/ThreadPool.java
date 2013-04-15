@@ -31,11 +31,14 @@
 //package edu.berkeley.cs162;
 package nachos.kv;
 
+import java.util.LinkedList;
+
 public class ThreadPool {
 	/**
 	 * Set of threads in the threadpool
 	 */
 	protected Thread threads[] = null;
+	protected LinkedList<Runnable> taskQueue = null;
 
 	/**
 	 * Initialize the number of threads required in the threadpool. 
@@ -45,6 +48,15 @@ public class ThreadPool {
 	public ThreadPool(int size)
 	{      
 	    // TODO: implement me
+		// Allocate new threads with given size
+		this.threads = new Thread[size];
+		this.waitingTasks = new LinkedList<Runnable>();
+		
+		// Initialize threads and start them
+		for (int i = 0; i < size; i++) {
+			this.threads[i] = new WorkerThread(this);
+			this.threads[i].start();
+		}
 	}
 
 	/**
@@ -53,9 +65,13 @@ public class ThreadPool {
 	 * @param r job that has to be executed asynchronously
 	 * @throws InterruptedException 
 	 */
-	public void addToQueue(Runnable r) throws InterruptedException
+	
+	// added synchoronized to protect taskQueue data.
+	public synchronized void addToQueue(Runnable r) throws InterruptedException
 	{
-	      // TODO: implement me
+	    // TODO: implement me
+		this.taskQueue.add(r);
+		this.notify();
 	}
 	
 	/** 
@@ -64,8 +80,12 @@ public class ThreadPool {
 	 * @throws InterruptedException 
 	 */
 	public synchronized Runnable getJob() throws InterruptedException {
-	      // TODO: implement me
-	    return null;
+	    // TODO: implement me
+	    while (this.taskQueue.isEmpty()) {
+	    	// block until a job is available
+	    	this.wait();
+	    }
+	    return this.taskQueue.poll();
 	}
 }
 
@@ -73,6 +93,7 @@ public class ThreadPool {
  * The worker threads that make up the thread pool.
  */
 class WorkerThread extends Thread {
+	ThreadPool threadpool;
 	/**
 	 * The constructor.
 	 * 
@@ -80,7 +101,8 @@ class WorkerThread extends Thread {
 	 */
 	WorkerThread(ThreadPool o)
 	{
-	     // TODO: implement me
+	    // TODO: implement me
+		this.threadpool = o;
 	}
 
 	/**
@@ -88,6 +110,14 @@ class WorkerThread extends Thread {
 	 */
 	public void run()
 	{
-	      // TODO: implement me
+	    // TODO: implement me
+		while(true) {
+			try {
+				this.threadpool.getJob().run();
+			}
+			catch (InterruptedException e) {
+				// silently ignore
+			}
+		}
 	}
 }
