@@ -29,7 +29,7 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 //package edu.berkeley.cs162;
-package edu.berkeley.cs162;
+package nachos.kv;
 
 import java.util.LinkedList;
 

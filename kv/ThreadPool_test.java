@@ -1,4 +1,4 @@
-package edu.berkeley.cs162;
+package nachos.kv;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
