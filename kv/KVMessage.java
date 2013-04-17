@@ -34,6 +34,7 @@ package nachos.kv;
 
 import java.io.FilterInputStream;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.Socket;
 
 /** Part I */
@@ -41,14 +42,24 @@ import java.io.OutputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.*;
+import javax.xml.transform.stream.*;
+
 import nachos.kv.KVException;
+
 import java.io.IOException;
+
 import javax.xml.parsers.ParserConfigurationException;
+
+
 import org.xml.sax.SAXException;
 /** Part I END */
 
@@ -188,6 +199,7 @@ public class KVMessage {
 							throw new KVException(new KVMessage("resp", "Message format incorrect"));
 						this.message = message;
 					}
+					break;
 				default:
 					throw new KVException(new KVMessage("resp", "Message format incorrect"));
 			}
@@ -216,48 +228,88 @@ public class KVMessage {
 	 * @throws KVException if not enough data is available to generate a valid KV XML message
 	 */
 	public String toXML() throws KVException {
-		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-		xml += "<KVMessage type=\"" + this.msgType + "\">\n";
-		
-		switch (this.msgType) {
-			case ("getreq"):
-				if (this.key=="" || this.key==null)
-					throw new KVException(new KVMessage("resp", "Message format incorrect"));
-				xml += "<Key>" + this.key + "</Key>\n";
-				break;
-			case ("putreq"):
-				if (this.key=="" || this.key==null || this.value=="" || this.value==null)
-					throw new KVException(new KVMessage("resp", "Message format incorrect"));
-				xml += "<Key>" + this.key + "</Key>\n";
-				xml += "<Value>" + this.value + "</Value>\n";
-				break;
-			case ("delreq"):
-				if (this.key=="" || this.key==null)
-					throw new KVException(new KVMessage("resp", "Message format incorrect"));
-				xml += "<Key>" + this.key + "</Key>\n";
-				break;
-			case ("resp"):
-				if (this.message=="" || this.message==null) {
+		try {
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document doc = db.newDocument();
+			doc.setXmlStandalone(true);
+			
+			Element rootElem = doc.createElement("KVMessage");
+			Element keyElem = doc.createElement("Key");
+			Element valueElem = doc.createElement("Value");
+			Element messageElem = doc.createElement("Message");
+			
+			Node keyText = doc.createTextNode(this.key);
+			Node valueText = doc.createTextNode(this.value);
+			Node messageText = doc.createTextNode(this.message);
+			
+			doc.appendChild(rootElem);
+			
+			switch (this.msgType) {
+				case ("getreq"):
+					rootElem.setAttribute("type", "getreq");
+					if (this.key=="" || this.key==null)
+						throw new KVException(new KVMessage("resp", "Message format incorrect"));
+					rootElem.appendChild(keyElem);
+					keyElem.appendChild(keyText);
+					break;
+				case ("putreq"):
+					rootElem.setAttribute("type", "putreq");
 					if (this.key=="" || this.key==null || this.value=="" || this.value==null)
 						throw new KVException(new KVMessage("resp", "Message format incorrect"));
-					xml += "<Key>" + this.key + "</Key>\n";
-					xml += "<Value>" + this.value + "</Value>\n";
-				}
-				else {
-					xml += "<Message>" + this.message + "</Message>\n";
-				}
-				break;
-			default:
-				throw new KVException(new KVMessage("resp", "Message format incorrect"));
+					rootElem.appendChild(keyElem);
+					rootElem.appendChild(valueElem);
+					keyElem.appendChild(keyText);
+					valueElem.appendChild(valueText);
+					break;
+				case ("delreq"):
+					rootElem.setAttribute("type", "delreq");
+					if (this.key=="" || this.key==null)
+						throw new KVException(new KVMessage("resp", "Message format incorrect"));
+					rootElem.appendChild(keyElem);
+					keyElem.appendChild(keyText);
+					break;
+				case ("resp"):
+					rootElem.setAttribute("type", "resp");
+					if (this.message=="" || this.message==null) {
+						if (this.key=="" || this.key==null || this.value=="" || this.value==null)
+							throw new KVException(new KVMessage("resp", "Message format incorrect"));
+						rootElem.appendChild(keyElem);
+						rootElem.appendChild(valueElem);
+						keyElem.appendChild(keyText);
+						valueElem.appendChild(valueText);
+					}
+					else {
+						rootElem.appendChild(messageElem);
+						keyElem.appendChild(messageText);
+					}
+					break;
+				default:
+					throw new KVException(new KVMessage("resp", "Message format incorrect"));
+			}
+			
+			DOMSource domSource = new DOMSource(doc);
+			StringWriter stringWriter = new StringWriter();
+			StreamResult streamResult = new StreamResult(stringWriter);
+			TransformerFactory transformerFactory = TransformerFactory.newInstance();
+			Transformer transformer = transformerFactory.newTransformer();
+			transformer.transform(domSource, streamResult);
+			String xmlString = stringWriter.toString();
+			
+			return xmlString;
 		}
-		
-		xml += "</KVMessage>\n";
-		return xml;
+		catch (KVException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			e.getStackTrace();
+		}
+		return null;
 	}
 
-	public void sendMessage(Socket sock) throws KVException {
+	public void sendMessage(Socket socket) throws KVException {
 		try {
-			sock.getOutputStream().write(toXML().getBytes());
+			socket.getOutputStream().write(toXML().getBytes());
 		}
 		catch (IOException e) {
 			throw new KVException(new KVMessage("resp", "Network Error: Could not send data"));
@@ -270,11 +322,18 @@ public class KVMessage {
 		}
 		
 		try {
-			sock.getOutputStream().flush();
+			socket.getOutputStream().flush();
 		}
 		catch (IOException e) {
 			throw new KVException(new KVMessage("resp", "Unknown Error: Socket is not connected"));
 		}
+		
+		try {
+	    	socket.shutdownOutput();
+	    }
+	    catch (IOException e) {
+	    	throw new KVException(new KVMessage("resp", "Unknown Error: " + e.getLocalizedMessage()));
+	    }
 	}
 	/** Part I END */
 	
