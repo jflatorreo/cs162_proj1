@@ -29,7 +29,7 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 //package edu.berkeley.cs162;
-package nachos.kv;
+package edu.berkeley.cs162;
 
 import java.util.LinkedList;
 
@@ -50,7 +50,7 @@ public class ThreadPool {
 	    // TODO: implement me
 		// Allocate new threads with given size
 		this.threads = new Thread[size];
-		this.waitingTasks = new LinkedList<Runnable>();
+		this.taskQueue = new LinkedList<Runnable>();
 		
 		// Initialize threads and start them
 		for (int i = 0; i < size; i++) {
